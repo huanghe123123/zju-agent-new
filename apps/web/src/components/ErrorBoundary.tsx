@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 type Props = { children: ReactNode };
 type State = { hasError: boolean; error: Error | null; info: ErrorInfo | null };
@@ -26,8 +28,9 @@ export class ErrorBoundary extends Component<Props, State> {
       const err = this.state.error;
       return (
         <div className="m-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm">
-          <div className="mb-2 font-semibold text-rose-700">
-            ⚠️ 页面渲染出错
+          <div className="mb-2 font-semibold text-rose-700 flex items-center gap-1.5">
+            <FontAwesomeIcon icon={faTriangleExclamation} />
+            页面渲染出错
           </div>
           <div className="mb-2 text-rose-600">{err?.message ?? String(err)}</div>
           {err?.stack && (

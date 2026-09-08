@@ -21,6 +21,16 @@ import {
   useExams,
   useUpcomingSchedule48h,
 } from "../api/zju.js";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheck,
+  faXmark,
+  faSpinner,
+  faLocationDot,
+  faCircleCheck,
+  faTriangleExclamation,
+  faChartSimple,
+} from "@fortawesome/free-solid-svg-icons";
 
 type PendingConfirmation = {
   confirmationId: string;
@@ -86,7 +96,7 @@ export function ChatPage() {
                   className="hidden shrink-0 text-slate-400 hover:text-rose-500 group-hover:block"
                   title="删除"
                 >
-                  ✕
+                  <FontAwesomeIcon icon={faXmark} />
                 </button>
               </div>
             ))}
@@ -180,7 +190,7 @@ function DashboardPanel() {
   const totalExams = (exams ?? []).length;
 
   return (
-    <RightPanel title="📊 校园看板">
+    <RightPanel title="校园看板" icon={faChartSimple}>
       <div className="space-y-3.5">
         {/* 校历时间坐标 */}
         {dateInfo && (
@@ -216,7 +226,10 @@ function DashboardPanel() {
             </div>
           ) : !activePeriod ? (
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center text-xs text-slate-500">
-              <span className="text-emerald-600 block font-semibold mb-1">🎉 48小时内无待办日程</span>
+              <span className="text-emerald-600 block font-semibold mb-1 flex items-center justify-center gap-1">
+                <FontAwesomeIcon icon={faCircleCheck} />
+                48小时内无待办日程
+              </span>
               今日与未来48小时暂无课程或考试
             </div>
           ) : (
@@ -259,7 +272,7 @@ function DashboardPanel() {
                     </div>
 
                     <div className="flex items-center justify-between text-slate-600">
-                      <span className="truncate">📍 {activePeriod.location}</span>
+                      <span className="truncate flex items-center gap-1"><FontAwesomeIcon icon={faLocationDot} className="text-slate-400 shrink-0" /> {activePeriod.location}</span>
                       <span className="font-mono font-bold text-slate-800 group-hover:text-zju-primary transition-colors shrink-0">
                         {formatHMS(liveSec)}
                       </span>
@@ -289,7 +302,7 @@ function DashboardPanel() {
                     <span className="font-bold text-slate-800 group-hover:text-zju-primary transition-colors truncate flex-1 mr-2">{lp.title}</span>
                     <span className="text-[10px] text-slate-400 shrink-0 font-medium">{lp.friendlyTimeStr}</span>
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">📍 {lp.location}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1"><FontAwesomeIcon icon={faLocationDot} className="text-slate-400 shrink-0" /> {lp.location}</div>
                 </Link>
               ))}
             </div>
@@ -320,8 +333,9 @@ function DashboardPanel() {
           {!assignmentsCollapsed && (
             <div className="border-t border-slate-100 bg-slate-50/60 p-2.5 space-y-2">
               {assignments48h.length === 0 ? (
-                <div className="text-center text-xs text-slate-500 py-1">
-                  🎉 近 48 小时无待提交作业
+                <div className="text-center text-xs text-slate-500 py-1 flex items-center justify-center gap-1">
+                  <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-600" />
+                  近 48 小时无待提交作业
                 </div>
               ) : (
                 assignments48h.map((a) => {
@@ -719,7 +733,7 @@ function LiveBubble({ state }: { state: LiveState }) {
 
 function ToolStepView({ step }: { step: ToolStep }) {
   const icon =
-    step.status === "done" ? "✓" : step.status === "failed" ? "✕" : "⋯";
+    step.status === "done" ? faCheck : step.status === "failed" ? faXmark : faSpinner;
   const color =
     step.status === "done"
       ? "text-emerald-600"
@@ -729,7 +743,7 @@ function ToolStepView({ step }: { step: ToolStep }) {
   const label = toolLabel(step.name);
   return (
     <div className="rounded-md border border-slate-100 bg-slate-50 px-3 py-1.5 text-xs">
-      <span className={color}>{icon}</span>{" "}
+      <span className={color}><FontAwesomeIcon icon={icon} className={step.status === "running" ? "animate-spin" : ""} /></span>{" "}
       <span className="font-mono text-slate-700">{label}</span>
       <span className="ml-1 text-slate-400">
         {summarizeInput(step.input)}
@@ -767,7 +781,7 @@ function HistoryBubble({ message }: { message: ChatMessage }) {
       <div className="mb-2 space-y-1">
         {calls.map((c) => (
           <div key={c.id} className="rounded-md border border-slate-100 bg-slate-50 px-3 py-1.5 text-xs">
-            <span className="text-emerald-600">✓</span>{" "}
+            <span className="text-emerald-600"><FontAwesomeIcon icon={faCheck} /></span>{" "}
             <span className="font-mono text-slate-700">{toolLabel(c.name)}</span>
             <span className="ml-1 text-slate-400">{summarizeInput(c.input)}</span>
           </div>
@@ -949,8 +963,9 @@ function ConfirmBar({
 }) {
   return (
     <div className="border-t border-amber-200 bg-amber-50 p-3">
-      <div className="mb-2 text-sm text-amber-800">
-        🔔 需要确认：将执行 <span className="font-mono">{pending.toolName}</span>
+      <div className="mb-2 text-sm text-amber-800 flex items-center gap-1.5">
+        <FontAwesomeIcon icon={faTriangleExclamation} />
+        需要确认：将执行 <span className="font-mono">{pending.toolName}</span>
       </div>
       <div className="mb-2 rounded-md bg-white/70 p-2 font-mono text-xs text-slate-600">
         {pending.summary}

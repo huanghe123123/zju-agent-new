@@ -1,39 +1,48 @@
 import { Link } from "react-router-dom";
 import { Layout } from "../components/Layout.js";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faGraduationCap,
+  faCreditCard,
+  faComments,
+  faBookOpen,
+  faChartLine,
+} from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
-const CARDS = [
+const CARDS: { title: string; description: string; icon: IconDefinition; to: string | null; available: boolean; hint?: string }[] = [
   {
     title: "智云课堂",
     description: "查看课堂资源、下载课件和语音转文字",
-    icon: "🎓",
+    icon: faGraduationCap,
     to: null,
     available: false,
   },
   {
     title: "校网充值",
     description: "查询校网状态、余额、发起充值",
-    icon: "💳",
+    icon: faCreditCard,
     to: null,
     available: false,
   },
   {
     title: "CC98 论坛",
     description: "浏览 CC98 帖子（后续版本接入）",
-    icon: "💬",
+    icon: faComments,
     to: null,
     available: false,
   },
   {
     title: "图书馆座位",
     description: "预约图书馆座位（后续版本接入）",
-    icon: "📖",
+    icon: faBookOpen,
     to: null,
     available: false,
   },
   {
     title: "ETA 成绩",
     description: "查看成绩与 GPA（后续版本接入）",
-    icon: "📊",
+    icon: faChartLine,
     to: null,
     available: false,
   },
@@ -65,7 +74,7 @@ function Card({
 }: {
   title: string;
   description: string;
-  icon: string;
+  icon: IconDefinition;
   to: string | null;
   available: boolean;
   hint?: string;
@@ -80,7 +89,9 @@ function Card({
           : "border-dashed border-slate-200 bg-slate-50/50"
       }`}
     >
-      <div className="mb-2 text-2xl">{icon}</div>
+      <div className="mb-2 text-2xl text-slate-500">
+        <FontAwesomeIcon icon={icon} />
+      </div>
       <h3 className="mb-1 text-sm font-semibold text-slate-800">
         {title}
         {!available && (

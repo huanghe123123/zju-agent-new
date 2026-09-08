@@ -216,14 +216,19 @@ export function Layout({
 /** 辅助面板标题+内容包装器，保持各页面右栏风格统一 */
 export function RightPanel({
   title,
+  icon,
   children,
 }: {
   title: string;
+  icon?: IconDefinition;
   children: ReactNode;
 }) {
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold text-slate-600">{title}</h3>
+      <h3 className="mb-3 text-sm font-semibold text-slate-600 flex items-center gap-1.5">
+        {icon && <FontAwesomeIcon icon={icon} className="text-slate-400" />}
+        {title}
+      </h3>
       {children}
     </div>
   );

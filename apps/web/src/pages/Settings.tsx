@@ -90,7 +90,7 @@ export function SettingsPage() {
         )}
 
         {/* 模型 Provider */}
-        <Section id="providers" title="🤖 模型 Provider">
+        <Section id="providers" title="模型 Provider" icon={faRobot}>
           <button
             onClick={() => setModelOpen((v) => !v)}
             className="rounded-md bg-zju-primary px-3 py-1.5 text-sm text-white hover:bg-zju-light"
@@ -130,7 +130,7 @@ export function SettingsPage() {
         </Section>
 
         {/* ZJU 账号 */}
-        <Section id="zju" title="🔐 ZJU 统一身份认证">
+        <Section id="zju" title="ZJU 统一身份认证" icon={faLock}>
           <div className="flex flex-wrap gap-2">
             <button onClick={revalidate} disabled={validate.isPending} className="rounded-md bg-zju-primary px-3 py-1.5 text-sm text-white hover:bg-zju-light disabled:opacity-50">
               {validate.isPending ? "验证中…" : "重新验证登录"}
@@ -148,7 +148,7 @@ export function SettingsPage() {
         </Section>
 
         {/* 权限策略 */}
-        <Section title="🛡️ 权限策略">
+        <Section title="权限策略" icon={faShieldHalved}>
           <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
             <p className="font-medium mb-1">当前策略（默认）</p>
             <ul className="list-disc pl-4 space-y-0.5">
@@ -163,7 +163,7 @@ export function SettingsPage() {
         </Section>
 
         {/* 清除数据 */}
-        <Section title="🗑️ 数据管理">
+        <Section title="数据管理" icon={faTrashCan}>
           <div className="flex flex-wrap gap-2">
             <button className="rounded-md border border-rose-300 px-3 py-1.5 text-sm text-rose-600 hover:bg-rose-50">
               清除本地缓存
@@ -178,7 +178,7 @@ export function SettingsPage() {
         </Section>
 
         {/* 导出日志 */}
-        <Section title="📋 导出日志">
+        <Section title="导出日志" icon={faClipboardList}>
           <button className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">
             导出审计日志
           </button>
@@ -194,10 +194,13 @@ export function SettingsPage() {
   );
 }
 
-function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
+function Section({ id, title, icon, children }: { id?: string; title: string; icon?: IconDefinition; children: React.ReactNode }) {
   return (
     <div id={id} className="rounded-lg border border-slate-200 bg-white p-4 scroll-mt-6">
-      <h2 className="mb-3 font-semibold text-slate-800">{title}</h2>
+      <h2 className="mb-3 font-semibold text-slate-800 flex items-center gap-2">
+        {icon && <FontAwesomeIcon icon={icon} className="text-slate-500 text-sm" />}
+        {title}
+      </h2>
       {children}
     </div>
   );

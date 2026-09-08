@@ -209,7 +209,7 @@ export function SetupPage() {
 
         {step === 3 && (
           <div className="text-center py-4">
-            <h2 className="mb-3 text-xl font-semibold text-slate-800">配置完成 🎉</h2>
+            <h2 className="mb-3 text-xl font-semibold text-slate-800">配置完成</h2>
             <p className="mb-6 text-slate-600">现在可以开始使用校园智能助手了。</p>
             <button onClick={() => navigate("/")} className="rounded-md bg-zju-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-zju-light transition shadow-sm">
               开始使用助手

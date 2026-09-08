@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { useBootstrapStore } from "../api/bootstrap.js";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 export function ServerStatusBanner({
   isReady,
@@ -38,8 +40,9 @@ export function ServerStatusBanner({
   }
   if (!isConnected) {
     return (
-      <div className="bg-rose-100 text-rose-800 px-4 py-2 text-sm">
-        ⚠️ 无法连接本地后端服务。{error ? `（${error}）` : "请确认后端已启动（默认 127.0.0.1:7788）。"}
+      <div className="bg-rose-100 text-rose-800 px-4 py-2 text-sm flex items-center gap-1.5">
+        <FontAwesomeIcon icon={faTriangleExclamation} />
+        无法连接本地后端服务。{error ? `（${error}）` : "请确认后端已启动（默认 127.0.0.1:7788）。"}
       </div>
     );
   }

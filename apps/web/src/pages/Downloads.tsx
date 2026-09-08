@@ -172,7 +172,7 @@ function DownloadRow({
   async function downloadFile() {
     try {
       setDownloading(true);
-      const url = downloadPreviewUrl(record.id, false, token);
+      const url = downloadPreviewUrl(record.id, token, false);
       const a = document.createElement("a");
       a.href = url;
       a.download = record.fileName;
