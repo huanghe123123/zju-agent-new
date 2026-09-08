@@ -51,7 +51,7 @@ export function Layout({
         {/* Workspace Brand Header */}
         <div className="mb-3 px-1">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-zju-primary text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="size-7 rounded-lg bg-zju-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
               求是
             </div>
             <div>
@@ -74,12 +74,12 @@ export function Layout({
               className={({ isActive }) =>
                 `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-white text-zju-primary shadow-xs border border-slate-200/80 font-bold"
+                    ? "bg-white text-zju-primary shadow-sm border border-slate-200/80 font-bold"
                     : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
                 }`
               }
             >
-              <FontAwesomeIcon icon={item.icon} className="text-sm w-4 text-center" />
+              <FontAwesomeIcon icon={item.icon} className="text-sm fa-fw" />
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -91,7 +91,7 @@ export function Layout({
             className={({ isActive }) =>
               `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${
                 isActive
-                  ? "bg-zju-primary text-white shadow-xs font-semibold"
+                  ? "bg-zju-primary text-white shadow-sm font-semibold"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               }`
             }
@@ -104,7 +104,7 @@ export function Layout({
             className={({ isActive }) =>
               `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${
                 isActive
-                  ? "bg-zju-primary text-white shadow-xs font-semibold"
+                  ? "bg-zju-primary text-white shadow-sm font-semibold"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               }`
             }

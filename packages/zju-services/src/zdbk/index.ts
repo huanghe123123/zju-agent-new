@@ -76,7 +76,11 @@ export class ZdbkService {
       try {
         await this.relogin();
         res = await doFetch();
-      } catch {}
+      } catch (err) {
+        console.warn(
+          `[zju-services/zdbk] 会话过期自动重登录失败：${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     } else if (res.ok) {
       const clone = res.clone();
       const text = await clone.text();
@@ -90,7 +94,11 @@ export class ZdbkService {
         try {
           await this.relogin();
           res = await doFetch();
-        } catch {}
+        } catch (err) {
+          console.warn(
+            `[zju-services/zdbk] 响应为登录页，自动重登录失败：${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
     }
 

@@ -11,7 +11,7 @@
 export function parseExamTimestamp(input?: string): number {
   if (!input) return NaN;
   // ISO 8601
-  let t = Date.parse(input);
+  const t = Date.parse(input);
   if (!Number.isNaN(t)) return t;
   // 教务网中文: "2026年04月25日(14:00-16:00)"
   const m = /^(\d{4})年(\d{2})月(\d{2})日\((\d{2}):(\d{2})/.exec(input);
