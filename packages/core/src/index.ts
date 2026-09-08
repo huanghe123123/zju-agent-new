@@ -13,6 +13,7 @@ export * from "./settings.js";
 export * from "./auth.js";
 export * from "./domain/courses.js";
 export * from "./domain/classroom.js";
+export * from "./domain/notices.js";
 export * from "./domain/zdbk.js";
 export * from "./domain/network.js";
 export * from "./domain/schedule.js";

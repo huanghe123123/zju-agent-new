@@ -13,7 +13,7 @@ import { ConfirmationRepo } from "./storage/confirmations.js";
 import type { CredentialStore } from "./auth/credentials.js";
 import type { ServerConfig } from "./config/env.js";
 import { AuthSessionManager } from "./auth/auth-session.js";
-import { CalendarService } from "@zju-agent/zju-services";
+import { CalendarService, NoticeService } from "@zju-agent/zju-services";
 import type { ZjuServices } from "@zju-agent/zju-services";
 
 export type ServicesContainer = {
@@ -30,6 +30,8 @@ export type ServicesContainer = {
   zju: ZjuServices;
   /** 校历服务，与 ZJU 账号无关，独立持有 */
   calendar: CalendarService;
+  /** 学校通知公告抓取（素质拓展 + 教务公开源），与 ZJU 账号无关，独立持有 */
+  notices: NoticeService;
 };
 
 export function createServicesContainer(input: {
@@ -52,5 +54,6 @@ export function createServicesContainer(input: {
     auth: new AuthSessionManager(credentials, zju),
     zju,
     calendar: new CalendarService(),
+    notices: new NoticeService(),
   };
 }

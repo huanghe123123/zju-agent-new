@@ -14,6 +14,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { authRoutes } from "./routes/auth.js";
 import { zjuCoursesRoutes } from "./routes/zju-courses.js";
 import { zdbkRoutes } from "./routes/zdbk.js";
+import { noticesRoutes } from "./routes/notices.js";
 import { filesRoutes } from "./routes/files.js";
 import { agentRoutes } from "./routes/agent.js";
 import type { ServicesContainer } from "./services.js";
@@ -85,17 +86,18 @@ export async function createServer(deps: ServerDeps) {
     });
   });
 
-  // 业务信封错误 → 设置合适的 HTTP 状态码（Fastify 自身错误仍走 setErrorHandler）
-  app.addHook("onSend", async (_request, reply, payload) => {
-    if (typeof payload === "string" && payload.startsWith('{"ok":false')) {
-      try {
-        const body = JSON.parse(payload) as { error?: { code?: string } };
-        const status = errorStatus(body.error?.code);
-        if (status && reply.statusCode === 200) {
-          reply.code(status);
-        }
-      } catch {
-        // 非 JSON 负载，忽略
+  // 业务信封错误 → 设置合适的 HTTP 状态码。
+  // 在序列化前检查已解析的响应对象（Fastify 自身错误仍走 setErrorHandler）
+  app.addHook("preSerialization", async (_request, reply, payload) => {
+    if (
+      payload !== null &&
+      typeof payload === "object" &&
+      (payload as { ok?: unknown }).ok === false
+    ) {
+      const code = (payload as { error?: { code?: string } }).error?.code;
+      const status = errorStatus(code);
+      if (status && reply.statusCode === 200) {
+        reply.code(status);
       }
     }
     return payload;
@@ -136,6 +138,7 @@ export async function createServer(deps: ServerDeps) {
   await app.register(authRoutes(deps), { prefix: "/api/auth" });
   await app.register(zjuCoursesRoutes(deps), { prefix: "/api/zju" });
   await app.register(zdbkRoutes(deps), { prefix: "/api/zju" });
+  await app.register(noticesRoutes(deps), { prefix: "/api/zju" });
   await app.register(filesRoutes(deps), { prefix: "/api/files" });
   await app.register(agentRoutes(deps), { prefix: "/api/agent" });
 

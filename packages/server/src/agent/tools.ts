@@ -18,10 +18,12 @@ import type {
   TimetableEntry,
   Exam,
   Assignment,
+  NoticeFetchResult,
 } from "@zju-agent/core";
 import type { ServicesContainer } from "../services.js";
 import type { ServerConfig } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { NOTICES_CACHE_KEY, NOTICES_CACHE_TTL_MS } from "../routes/notices.js";
 
 export type ToolDeps = ServicesContainer & { config: ServerConfig };
 
@@ -43,6 +45,7 @@ export function buildTools(deps: ToolDeps): AgentTool[] {
     makeGetExams(deps),
     makeGetTimetable(deps),
     makeGetGrades(deps),
+    makeGetNotices(deps),
     makeDownloadCourseMaterial(deps),
     makeBatchDownload(deps),
   ];
@@ -432,6 +435,51 @@ function makeGetTimetable(deps: ToolDeps): AgentTool {
         }
 
         return entries;
+      });
+    },
+  };
+}
+
+function makeGetNotices(deps: ToolDeps): AgentTool {
+  return {
+    name: "zju_get_notices",
+    description:
+      "查询学校最近发布的通知公告（素质拓展平台 + 教务系统，公开源无需登录）。返回标题、发布日期、来源、发布人、置顶标记与详情链接。用户问「最近有什么学校通知/公告」「素拓有什么通知」时调用。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        source: {
+          type: "string",
+          enum: ["sztz", "zdbk"],
+          description:
+            "可选，按来源过滤：sztz=素质拓展平台，zdbk=教务系统。不传返回全部。",
+        },
+        limit: {
+          type: "number",
+          description: "可选，返回条数上限，默认 15，最大 50。",
+        },
+      },
+      additionalProperties: false,
+    },
+    riskLevel: "read",
+    requiresConfirmation: false,
+    async execute(input, ctx): Promise<ToolResult> {
+      return runRead(ctx, async () => {
+        const q = (input ?? {}) as { source?: string; limit?: number };
+        let result = deps.cache.get<NoticeFetchResult>(NOTICES_CACHE_KEY);
+        if (!result) {
+          result = await deps.notices.getAllNotices(15);
+          deps.cache.set(NOTICES_CACHE_KEY, result, NOTICES_CACHE_TTL_MS);
+        }
+        let items = result.items;
+        if (q.source === "sztz" || q.source === "zdbk") {
+          items = items.filter((n) => n.source === q.source);
+        }
+        const limit =
+          typeof q.limit === "number" && q.limit > 0
+            ? Math.min(Math.floor(q.limit), 50)
+            : 15;
+        return { items: items.slice(0, limit), failures: result.failures };
       });
     },
   };

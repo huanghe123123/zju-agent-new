@@ -7,6 +7,7 @@ const SetupPage = lazy(() => import("../pages/Setup.js").then((m) => ({ default:
 const CoursesPage = lazy(() => import("../pages/Courses.js").then((m) => ({ default: m.CoursesPage })));
 const AssignmentsPage = lazy(() => import("../pages/Assignments.js").then((m) => ({ default: m.AssignmentsPage })));
 const ExamsPage = lazy(() => import("../pages/Exams.js").then((m) => ({ default: m.ExamsPage })));
+const SchoolInfoPage = lazy(() => import("../pages/SchoolInfo.js").then((m) => ({ default: m.SchoolInfoPage })));
 const DownloadsPage = lazy(() => import("../pages/Downloads.js").then((m) => ({ default: m.DownloadsPage })));
 const ClassroomPage = lazy(() => import("../pages/Classroom.js").then((m) => ({ default: m.ClassroomPage })));
 const SettingsPage = lazy(() => import("../pages/Settings.js").then((m) => ({ default: m.SettingsPage })));
@@ -32,6 +33,7 @@ export const routes: RouteObject[] = [
   { path: "/courses", element: withSuspense(<CoursesPage />) },
   { path: "/assignments", element: withSuspense(<AssignmentsPage />) },
   { path: "/exams", element: withSuspense(<ExamsPage />) },
+  { path: "/school-info", element: withSuspense(<SchoolInfoPage />) },
   { path: "/downloads", element: withSuspense(<DownloadsPage />) },
   { path: "/classroom", element: withSuspense(<ClassroomPage />) },
   { path: "/settings", element: withSuspense(<SettingsPage />) },

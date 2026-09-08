@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Scope
 
-This is a pnpm workspace monorepo **only for the `zju-agent` package** — a local-first ZJU (Zhejiang University) campus AI agent. The sibling directories `Celechron/` (Flutter, third-party) and `fiz/` (Vue+Tauri+Rust, reference-only) at the repo root are **not part of this project**. `fiz/` exists only as a reference for ZJU API paths and parsing logic — do not copy its code or inherit its Rust/Tauri architecture.
+This is a pnpm workspace monorepo **only for the `zju-agent` package** — a local-first ZJU (Zhejiang University) campus AI agent. This repository is self-contained.
 
-All commands below run from `zju-agent/`.
+All commands below run from the repository root.
 
 ## Commands
 
@@ -48,7 +48,7 @@ React Web UI (apps/web)  ──HTTP + local access token──▶  Local Fastify
 ### The request flow / security model (read this before touching auth)
 
 1. **Server boot** (`packages/server/src/index.ts`): `loadConfig` resolves `~/.zju-campus-agent/`, opens/creates `agent.db` (SQLite, WAL), builds an `EncryptedFileCredentialStore`, and reads/creates `.token` (the local access token, mode 0o600).
-2. **Auth middleware** (`src/middleware/auth.ts`): every route except `/api/health` and `/api/bootstrap` requires `Authorization: Bearer <token>`. Binary resources (`<img>`/`<iframe>` previews) that can't set headers fall back to `?token=` query. In dev, a fixed `devToken` (`dev-local-token-zju-agent`) is also accepted.
+2. **Auth middleware** (`src/middleware/auth.ts`): every route except `/api/health` and `/api/bootstrap` requires `Authorization: Bearer <token>`. Binary resources (`<img>`/`<iframe>` previews) that can't set headers fall back to `?token=` query.
 3. **Bootstrap**: dev mode hands the token to the frontend via `GET /api/bootstrap`; in production the token must be injected by Electron / read from file (not via the endpoint).
 4. **Credentials**: ZJU password + LLM apiKey are stored AES-256-GCM in `~/.zju-campus-agent/credentials.enc`. Key derived from `username@hostname:appDir` (machine-bound, never written to config). The frontend only ever sees a masked `CredentialStatus`.
 5. **ZJU access**: routes call `deps.auth.getServiceAdapters()` (logs in lazily, throws `ZJU_CREDENTIAL_MISSING` if no account). Do not call `login-zju` classes directly from routes — go through `AuthSessionManager`/`ZjuServices`.

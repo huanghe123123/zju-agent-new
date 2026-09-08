@@ -217,7 +217,10 @@ export function DashboardPage() {
     return due > nowMs && due - nowMs < 48 * 3600 * 1000;
   });
 
-  const assignments48h = upcomingData?.assignments48h ?? [];
+  const assignments48h = useMemo(
+    () => upcomingData?.assignments48h ?? [],
+    [upcomingData],
+  );
 
   const [upcomingTab, setUpcomingTab] = useState<"schedule" | "assignments">("schedule");
 
@@ -512,7 +515,7 @@ export function DashboardPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             <Link to="/courses" className="block h-full">
-              <Card raised interactive className="p-4.5 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
+              <Card raised interactive className="p-4 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-slate-500">本学期课程</span>
@@ -535,7 +538,7 @@ export function DashboardPage() {
             </Link>
 
             <Link to="/assignments" className="block h-full">
-              <Card raised interactive className="p-4.5 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
+              <Card raised interactive className="p-4 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-slate-500">待办作业</span>
@@ -549,7 +552,7 @@ export function DashboardPage() {
                     </span>
                     <span className="text-xs font-medium text-slate-500">项待交</span>
                     {urgentAssignments.length > 0 && (
-                      <Badge tone="warning" size="small" className="ml-2">
+                      <Badge tone="warning" size="small" className="ml-2 self-center">
                         {urgentAssignments.length} 临近
                       </Badge>
                     )}
@@ -563,7 +566,7 @@ export function DashboardPage() {
             </Link>
 
             <Link to="/exams" className="block h-full">
-              <Card raised interactive className="p-4.5 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
+              <Card raised interactive className="p-4 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-slate-500">考试安排</span>
@@ -586,7 +589,7 @@ export function DashboardPage() {
             </Link>
 
             <Link to="/downloads" className="block h-full">
-              <Card raised interactive className="p-4.5 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
+              <Card raised interactive className="p-4 h-full group transition-all duration-150 hover:-translate-y-0.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-slate-500">下载中心</span>

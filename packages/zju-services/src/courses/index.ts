@@ -51,7 +51,11 @@ export class CoursesService {
       try {
         await this.relogin();
         res = await doFetch();
-      } catch {}
+      } catch (err) {
+        console.warn(
+          `[zju-services/courses] 会话过期自动重登录失败：${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     } else if (res.ok) {
       const contentType = res.headers.get("content-type") || "";
       if (contentType.includes("text/html")) {
@@ -61,7 +65,11 @@ export class CoursesService {
           try {
             await this.relogin();
             res = await doFetch();
-          } catch {}
+          } catch (err) {
+            console.warn(
+              `[zju-services/courses] 响应为登录页，自动重登录失败：${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
         }
       }
     }

@@ -187,7 +187,7 @@ export function FloatingChat() {
       {isOpen && !isMinimized && (
         <div
           className={`fixed z-50 flex flex-col rounded-2xl border border-slate-200/90 bg-white shadow-2xl transition-shadow ${
-            isDragging ? "select-none shadow-3xl opacity-95" : ""
+            isDragging ? "select-none opacity-95" : ""
           }`}
           style={{
             left: position
@@ -338,7 +338,8 @@ function ActiveConversationContent({
   const { prefillPrompt, setPrefillPrompt } = useFloatingChatStore();
   const [draft, setDraft] = useState("");
   const conv = useConversation(conversationId);
-  const history = conv.data?.messages ?? [];
+  // 稳定引用：?? [] 每次渲染新建数组会让下方 useEffect 依赖失稳
+  const history = useMemo(() => conv.data?.messages ?? [], [conv.data]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState<LiveState>(initialLive());
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
@@ -614,7 +615,7 @@ function NewConversationContent({
               key={item.label}
               onClick={() => onSend(item.prompt)}
               disabled={send.isPending}
-              className="w-full text-left rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs text-slate-700 hover:border-zju-primary hover:text-zju-primary hover:bg-slate-50/80 transition shadow-2xs flex items-center gap-2 group"
+              className="w-full text-left rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs text-slate-700 hover:border-zju-primary hover:text-zju-primary hover:bg-slate-50/80 transition shadow-sm flex items-center gap-2 group"
             >
               <FontAwesomeIcon icon={item.icon} className="text-slate-400 group-hover:text-zju-primary text-xs shrink-0" />
               <span>{item.label}</span>
@@ -672,7 +673,7 @@ function ToolStepView({ step }: { step: ToolStep }) {
     );
   const label = toolLabel(step.name);
   return (
-    <div className="rounded-lg border border-slate-200/80 bg-white/80 px-2.5 py-1.5 text-xs shadow-2xs">
+    <div className="rounded-lg border border-slate-200/80 bg-white/80 px-2.5 py-1.5 text-xs shadow-sm">
       <div className="flex items-center gap-1.5">
         <span>{icon}</span>
         <span className="font-medium text-slate-700">{label}</span>
@@ -726,8 +727,8 @@ function Bubble({ role, children }: { role: "user" | "assistant"; children: Reac
       <div
         className={`max-w-[88%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
           isUser
-            ? "bg-zju-primary text-white rounded-br-xs shadow-xs"
-            : "border border-slate-200/80 bg-white text-slate-800 rounded-bl-xs shadow-xs prose prose-xs prose-slate max-w-none"
+            ? "bg-zju-primary text-white rounded-br-sm shadow-sm"
+            : "border border-slate-200/80 bg-white text-slate-800 rounded-bl-sm shadow-sm max-w-none"
         }`}
       >
         {isUser ? children : <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>}
@@ -801,7 +802,7 @@ function Composer({
         <button
           type="submit"
           disabled={disabled || !text.trim()}
-          className="rounded-xl bg-zju-primary px-3.5 py-2 text-xs font-medium text-white hover:bg-zju-light disabled:opacity-40 transition shadow-2xs"
+          className="rounded-xl bg-zju-primary px-3.5 py-2 text-xs font-medium text-white hover:bg-zju-light disabled:opacity-40 transition shadow-sm"
         >
           {disabled ? "…" : "发送"}
         </button>

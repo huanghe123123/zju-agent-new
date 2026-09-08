@@ -6,6 +6,7 @@ import {
   faBookOpen,
   faListCheck,
   faGraduationCap,
+  faBullhorn,
   faFolderOpen,
   faGear,
   faChartSimple,
@@ -15,11 +16,19 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FloatingChat } from "./FloatingChat.js";
 import { useFloatingChatStore } from "../stores/useFloatingChat.js";
 
-const NAV_ITEMS: { to: string; label: string; icon: IconDefinition; end?: boolean }[] = [
+const NAV_ITEMS: {
+  to: string;
+  label: string;
+  /** 移动端底栏显示的短名（不传用 label） */
+  shortLabel?: string;
+  icon: IconDefinition;
+  end?: boolean;
+}[] = [
   { to: "/", label: "工作台", icon: faHouse, end: true },
   { to: "/courses", label: "课程表", icon: faBookOpen },
-  { to: "/assignments", label: "待办作业", icon: faListCheck },
-  { to: "/exams", label: "考试安排", icon: faGraduationCap },
+  { to: "/assignments", label: "待办作业", shortLabel: "作业", icon: faListCheck },
+  { to: "/exams", label: "考试安排", shortLabel: "考试", icon: faGraduationCap },
+  { to: "/school-info", label: "学校信息", shortLabel: "通知", icon: faBullhorn },
 ];
 
 export function Layout({
@@ -51,7 +60,7 @@ export function Layout({
         {/* Workspace Brand Header */}
         <div className="mb-3 px-1">
           <div className="flex items-center gap-2.5">
-            <div className="size-7 rounded-lg bg-zju-primary text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="size-7 rounded-lg bg-zju-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
               求是
             </div>
             <div>
@@ -74,12 +83,12 @@ export function Layout({
               className={({ isActive }) =>
                 `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-white text-zju-primary shadow-xs border border-slate-200/80 font-bold"
+                    ? "bg-white text-zju-primary shadow-sm border border-slate-200/80 font-bold"
                     : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
                 }`
               }
             >
-              <FontAwesomeIcon icon={item.icon} className="text-sm w-4 text-center" />
+              <FontAwesomeIcon icon={item.icon} className="text-sm fa-fw" />
               <span>{item.label}</span>
             </NavLink>
           ))}
@@ -91,7 +100,7 @@ export function Layout({
             className={({ isActive }) =>
               `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${
                 isActive
-                  ? "bg-zju-primary text-white shadow-xs font-semibold"
+                  ? "bg-zju-primary text-white shadow-sm font-semibold"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               }`
             }
@@ -104,7 +113,7 @@ export function Layout({
             className={({ isActive }) =>
               `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition-all ${
                 isActive
-                  ? "bg-zju-primary text-white shadow-xs font-semibold"
+                  ? "bg-zju-primary text-white shadow-sm font-semibold"
                   : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
               }`
             }
@@ -175,7 +184,7 @@ export function Layout({
             }
           >
             <FontAwesomeIcon icon={item.icon} className="text-sm" />
-            <span>{item.label}</span>
+            <span>{item.shortLabel ?? item.label}</span>
           </NavLink>
         ))}
         {/* 移动端下载与设置入口 */}
