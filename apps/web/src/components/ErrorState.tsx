@@ -6,10 +6,10 @@ export function ErrorState({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md border border-rose-200 bg-rose-50 p-4">
-      <div className="text-sm font-medium text-rose-700">加载失败</div>
-      <div className="mt-1 text-xs text-rose-600">{message}</div>
-      {hint && <div className="mt-2 text-xs text-slate-500">{hint}</div>}
+    <div className="rounded-paper border border-seal/40 bg-seal/10 p-4 shadow-seal">
+      <div className="font-serif text-sm font-black tracking-[2px] text-seal">加载失败</div>
+      <div className="mt-1 text-xs leading-relaxed text-ink-soft">{message}</div>
+      {hint && <div className="mt-2 text-xs tracking-wide text-ink-faint">{hint}</div>}
     </div>
   );
 }

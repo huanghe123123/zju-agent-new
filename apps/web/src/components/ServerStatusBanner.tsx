@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useBootstrapStore } from "../api/bootstrap.js";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { KoboyoIcon } from "./ui/KoboyoIcon.js";
 
 export function ServerStatusBanner({
   isReady,
@@ -33,15 +32,16 @@ export function ServerStatusBanner({
 
   if (!isReady) {
     return (
-      <div className="bg-slate-200 text-slate-700 px-4 py-2 text-sm">
+      <div className="flex items-center justify-center gap-2 bg-paper-deep px-4 py-2 text-sm tracking-widest text-ink-soft">
+        <KoboyoIcon name="cartoon-hourglass" className="h-4 w-auto animate-pulse text-gold" />
         正在连接本地后端服务…
       </div>
     );
   }
   if (!isConnected) {
     return (
-      <div className="bg-rose-100 text-rose-800 px-4 py-2 text-sm flex items-center gap-1.5">
-        <FontAwesomeIcon icon={faTriangleExclamation} />
+      <div className="flex items-center justify-center gap-2 border-b border-seal/40 bg-seal/15 px-4 py-2 text-sm text-seal">
+        <KoboyoIcon name="bell-notification" className="h-4 w-auto shrink-0" />
         无法连接本地后端服务。{error ? `（${error}）` : "请确认后端已启动（默认 127.0.0.1:7788）。"}
       </div>
     );

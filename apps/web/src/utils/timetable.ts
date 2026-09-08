@@ -46,28 +46,32 @@ export function sectionRangeLabel(
     : `第${startSection}-${endSection}节`;
 }
 
-/** 网页端课程块配色（Tailwind v3 刻度），按课程名首次出现顺序循环取色 */
+/**
+ * 网页端课程块配色（纸墨学术风·传统色），按课程名首次出现顺序循环取色。
+ * 靛蓝 / 竹青 / 赭黄 / 胭脂 / 紫藤 / 黛青 / 藤黄 / 墨灰——
+ * 低饱和暖调，与纸色底 (paper) 协调；类名静态写在源码里供 Tailwind JIT 扫描。
+ */
 export const COURSE_COLORS = [
-  "bg-blue-50 border-blue-200 text-blue-800",
-  "bg-pink-50 border-pink-200 text-pink-800",
-  "bg-emerald-50 border-emerald-200 text-emerald-800",
-  "bg-amber-50 border-amber-200 text-amber-800",
-  "bg-purple-50 border-purple-200 text-purple-800",
-  "bg-rose-50 border-rose-200 text-rose-800",
-  "bg-cyan-50 border-cyan-200 text-cyan-800",
-  "bg-indigo-50 border-indigo-200 text-indigo-800",
+  "bg-[#e3ebf6] border-[#a8bcd8] text-[#1c3a63]", // 靛蓝
+  "bg-[#e2efe3] border-[#a5c9a8] text-[#2c5e33]", // 竹青
+  "bg-[#f5ecd9] border-[#dbc493] text-[#7a5f22]", // 赭黄
+  "bg-[#f6e3df] border-[#ddb0a6] text-[#8c3a2e]", // 胭脂
+  "bg-[#eae5f2] border-[#bfb2d6] text-[#55447a]", // 紫藤
+  "bg-[#e0edee] border-[#a3c6c9] text-[#2a5a5e]", // 黛青
+  "bg-[#f7e9dc] border-[#e0b994] text-[#8a5222]", // 藤黄
+  "bg-[#e9e7e0] border-[#c2bfb2] text-[#4a4a42]", // 墨灰
 ] as const;
 
-/** Excel 导出配色：与 COURSE_COLORS 一一对应（Tailwind v3 调色板 hex，ARGB 加 FF 前缀） */
+/** Excel 导出配色：与 COURSE_COLORS 一一对应（ARGB 加 FF 前缀） */
 export const COURSE_COLOR_HEX = [
-  { bg: "FFEFF6FF", border: "FFBFDBFE", text: "FF1E40AF" }, // blue
-  { bg: "FFFDF2F8", border: "FFFBCFE8", text: "FF9D174D" }, // pink
-  { bg: "FFECFDF5", border: "FFA7F3D0", text: "FF065F46" }, // emerald
-  { bg: "FFFFFBEB", border: "FFFDE68A", text: "FF92400E" }, // amber
-  { bg: "FFF5F3FF", border: "FFDDD6FE", text: "FF6D28D9" }, // purple
-  { bg: "FFFFF1F2", border: "FFFECDD3", text: "FF9F1239" }, // rose
-  { bg: "FFECFEFF", border: "FFA5F3FC", text: "FF155E75" }, // cyan
-  { bg: "FFEEF2FF", border: "FFC7D2FE", text: "FF3730A3" }, // indigo
+  { bg: "FFE3EBF6", border: "FFA8BCD8", text: "FF1C3A63" }, // 靛蓝
+  { bg: "FFE2EFE3", border: "FFA5C9A8", text: "FF2C5E33" }, // 竹青
+  { bg: "FFF5ECD9", border: "FFDBC493", text: "FF7A5F22" }, // 赭黄
+  { bg: "FFF6E3DF", border: "FFDDB0A6", text: "FF8C3A2E" }, // 胭脂
+  { bg: "FFEAE5F2", border: "FFBFB2D6", text: "FF55447A" }, // 紫藤
+  { bg: "FFE0EDEE", border: "FFA3C6C9", text: "FF2A5A5E" }, // 黛青
+  { bg: "FFF7E9DC", border: "FFE0B994", text: "FF8A5222" }, // 藤黄
+  { bg: "FFE9E7E0", border: "FFC2BFB2", text: "FF4A4A42" }, // 墨灰
 ] as const;
 
 export type CourseGroup = {
