@@ -15,6 +15,7 @@ import type {
   TimetableEntry,
   Grade,
   UpcomingSchedule48h,
+  NoticeFetchResult,
 } from "@zju-agent/core";
 import { useApiFetch } from "./bootstrap.js";
 
@@ -265,6 +266,24 @@ export function useGrades(xnxq01id?: string) {
       return json.data;
     },
     staleTime: 60 * 60_000,
+    retry: false,
+    throwOnError: false,
+  });
+}
+
+/** 学校通知公告（素质拓展平台 + 教务系统公开源，免浙大凭据） */
+export function useNotices(limit = 20, refreshSeq = 0) {
+  const apiFetch = useApiFetch();
+  return useQuery({
+    queryKey: ["zju", "notices", limit, refreshSeq],
+    queryFn: async () => {
+      const refresh = refreshSeq > 0 ? "&refresh=1" : "";
+      const res = await apiFetch(`/api/zju/notices?limit=${limit}${refresh}`);
+      const json = (await res.json()) as ApiResponse<NoticeFetchResult>;
+      if (!json.ok) throw new Error(json.error.message);
+      return json.data;
+    },
+    staleTime: 30 * 60_000,
     retry: false,
     throwOnError: false,
   });

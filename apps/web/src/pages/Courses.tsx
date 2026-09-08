@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Layout, RightPanel } from "../components/Layout.js";
 import { ErrorState } from "../components/ErrorState.js";
 import { Loading } from "../components/Loading.js";
@@ -11,9 +11,21 @@ import {
   useTimetable,
 } from "../api/zju.js";
 import { formatBytes } from "../utils/format.js";
+import {
+  downloadTimetablePng,
+  downloadTimetableXlsx,
+  todayStamp,
+} from "../utils/exportTimetable.js";
+import { semesterDisplayName } from "../utils/timetable.js";
 import type { Course, Semester } from "@zju-agent/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarDays, faLightbulb, faXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCalendarDays,
+  faFileExcel,
+  faImage,
+  faLightbulb,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 
 /** 学在浙大学期名 → 教务网 xnxq01id */
 function semesterToXnxq01id(name: string): string | null {
@@ -251,6 +263,40 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
   const { data, isLoading, error, refetch, isFetching } = useTimetable(xnxq01id);
   const entries = data ?? [];
 
+  // 导出：离屏渲染一份含标题的完整课表，供 PNG 截图（不受页面滚动裁剪）
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState<"image" | "excel" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const semesterLabel = semesterDisplayName(xnxq01id);
+  const exportFileName = (ext: string) =>
+    `课程表-${semesterLabel}-${todayStamp()}.${ext}`;
+
+  const handleExportImage = async () => {
+    if (!exportRef.current || exporting) return;
+    setExporting("image");
+    setExportError(null);
+    try {
+      await downloadTimetablePng(exportRef.current, exportFileName("png"));
+    } catch {
+      setExportError("图片导出失败，请重试。");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (entries.length === 0 || exporting) return;
+    setExporting("excel");
+    setExportError(null);
+    try {
+      await downloadTimetableXlsx(entries, semesterLabel, exportFileName("xlsx"));
+    } catch {
+      setExportError("Excel 导出失败，请重试。");
+    } finally {
+      setExporting(null);
+    }
+  };
+
   if (error) {
     return (
       <>
@@ -265,7 +311,26 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {exportError && (
+          <span className="mr-auto text-xs text-rose-500">{exportError}</span>
+        )}
+        <button
+          onClick={handleExportImage}
+          disabled={exporting !== null || entries.length === 0}
+          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
+        >
+          <FontAwesomeIcon icon={faImage} className="mr-1 text-xs" />
+          {exporting === "image" ? "生成中…" : "导出图片"}
+        </button>
+        <button
+          onClick={handleExportExcel}
+          disabled={exporting !== null || entries.length === 0}
+          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
+        >
+          <FontAwesomeIcon icon={faFileExcel} className="mr-1 text-xs" />
+          {exporting === "excel" ? "生成中…" : "导出 Excel"}
+        </button>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
@@ -279,7 +344,18 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
           该学期暂无课表数据
         </div>
       ) : (
-        <TimetableGrid entries={entries} />
+        <>
+          <TimetableGrid entries={entries} />
+          {/* 离屏导出节点：完整宽度渲染标题+课表，仅在截图时被读取 */}
+          <div aria-hidden className="pointer-events-none fixed -left-[9999px] top-0">
+            <div ref={exportRef} className="w-[960px] bg-white p-4">
+              <div className="mb-2 text-center text-base font-bold text-slate-900">
+                浙江大学课程表（{semesterLabel}）
+              </div>
+              <TimetableGrid entries={entries} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

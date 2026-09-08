@@ -28,7 +28,7 @@ pnpm --filter @zju-agent/web build     # 单包构建（filter 用包名）
 
 - Windows 用户可直接双击根目录 **`start-dev.bat`** 一键启动（环境检查→装依赖→起前后端→开浏览器，带端口占用防重复启动）。注意：该文件是 **GBK 编码 + CRLF**（cmd 中文必需），勿用编辑器另存为 UTF-8。
 - `pnpm dev` 会并行跑所有包的 dev，一般不需要；日常用上面两条 dev 命令或 bat。
-- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 3 个套件 26 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）。新增纯函数时应配套 `*.test.ts`。
+- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 4 个套件 42 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`（从 `utils/timetable.ts` 导入）、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）、`packages/zju-services/src/notices/index.test.ts`（通知解析/日期转换，样本来自抓包项目 fixtures）。新增纯函数时应配套 `*.test.ts`。
 - **ESLint 已接入**（eslint.config.js：typescript-eslint recommended + react-hooks + tailwindcss `no-custom-classname`，后者可拦截 v3 下不存在的类名如 `p-4.5`）。改完代码跑 `pnpm lint`。注意 `no-custom-classname` 白名单里有 `fa-fw`（FontAwesome）和 `input`（Settings.tsx 内联样式）两个非 Tailwind 类。
 - ZJU 认证 happy path 的 bug 仍需真实凭据手工端到端验证（见 §14）。
 
@@ -122,6 +122,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 | `courses/index.ts` | `CoursesService` | 学在浙大课程/课件/作业/测验（含两处裸 `catch {}` 静默吞错，见审查报告） |
 | `zdbk/index.ts` | `ZdbkService` | 教务网考试/课表/成绩（567 行，正方课表端点双候选路径探测） |
 | `calendar/index.ts` | `CalendarService` | 校历 |
+| `notices/index.ts` | `NoticeService` | 学校通知公告抓取（素质拓展 getTzggList + 教务 xwck_cxMoreLoginNews）。**两个都是免登录公开 JSON 接口**，与浙大凭据无关，直接挂容器不进 `ZjuServiceAdapters`。解析纯函数 `parseSztzResponse`/`parseZdbkResponse`/`toBeijingDate` 有单测 |
 | `classroom/index.ts` | `ClassroomService` | **stub，返回 `[]`**（Phase 7 故意延后） |
 | `network/index.ts` | `NetworkService` | **stub，抛 `ZJU_SERVICE_UNAVAILABLE`** |
 
@@ -141,6 +142,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 | `/api/auth` | `routes/auth.ts` | 浙大凭据保存/校验/登出 |
 | `/api/zju` | `routes/zju-courses.ts` | 学在浙大：学期/课程/课件/作业/测验/下载 |
 | `/api/zju` | `routes/zdbk.ts` | 教务网：考试/课表/成绩（注意与 zju-courses 同挂 `/api/zju`） |
+| `/api/zju` | `routes/notices.ts` | 学校通知公告 `GET /api/zju/notices`（缓存 30 分钟，`refresh=1` 强刷；免凭据） |
 | `/api/files` | `routes/files.ts` | 下载管理/预览 |
 | `/api/agent` | `routes/agent.ts` | 聊天/确认/会话管理（SSE） |
 
@@ -177,6 +179,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 | `/courses` | `pages/Courses.tsx` | 课表 + 课程列表 + 详情抽屉 |
 | `/assignments` | `pages/Assignments.tsx` | 作业四态标签页 |
 | `/exams` | `pages/Exams.tsx` | 考试安排 |
+| `/school-info` | `pages/SchoolInfo.tsx` | 学校信息（素拓+教务通知列表，点击浏览器打开原文） |
 | `/downloads` | `pages/Downloads.tsx` | 下载记录 + 预览抽屉 |
 | `/classroom` | `pages/Classroom.tsx` | 占位页（10 行） |
 | `/settings` | `pages/Settings.tsx` | 设置（凭据/模型/下载目录） |
@@ -195,7 +198,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 ### 11.4 API 层（`src/api/`，TanStack Query hooks）
 
 - `bootstrap.ts`：token 存取（zustand store + localStorage）、`useApiFetch()`、`useTokenUrl()`（二进制资源 `?token=`）。
-- `zju.ts`：`useSemesters` / `useCourses` / `useMaterials` / `useCourseAssignments` / `useCourseQuizzes` / `useAllAssignments` / `useDownloadMaterial` / `useDownloads` / `useDeleteDownload` / `downloadPreviewUrl` / `useExams` / `useTimetable` / `useGrades` / `useUpcomingSchedule48h`。
+- `zju.ts`：`useSemesters` / `useCourses` / `useMaterials` / `useCourseAssignments` / `useCourseQuizzes` / `useAllAssignments` / `useDownloadMaterial` / `useDownloads` / `useDeleteDownload` / `downloadPreviewUrl` / `useExams` / `useTimetable` / `useGrades` / `useUpcomingSchedule48h` / `useNotices`。
 - `agent.ts`：`useConversations` / `useConversation` / `useSendMessage`（SSE）/ `useConfirmTool` / `useDeleteConversation`，`AgentEvent` SSE 事件类型。
 - `auth.ts`：`useAuthStatus` / `useValidateCredential` / `useLogout`。
 
@@ -240,3 +243,4 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 - **Phase 7（智云课堂/校网充值）故意延后**：`ClassroomService`/`NetworkService` 是 stub，未经重新决策勿实现。
 - 可能的下一步：作业提交（学在浙大唯一缺的 must-have）、下载目录配置 UI。
 - 2026-09-08 完成两轮修复：第一轮修「学业快览」统计卡对齐 bug（`p-4.5` 失效）；第二轮修复审查报告全部 P1–P3 遗留问题（v4 残留类名、删除死代码 Chat.tsx/Toolbox.tsx、TimetableGrid 重构为 CSS Grid、吞错日志、凭据 v2 格式+密钥缓存、preSerialization、vitest+ESLint 接入等）。各项修复细节见 **`docs/code-review-2026-09-08.md`**（已全部标注 ✅）。
+- 2026-09-08 新增两个功能：①**课表导出**——课程页工具栏「导出图片/导出 Excel」（`utils/exportTimetable.ts`：html-to-image 截离屏节点出 PNG；ExcelJS 生成网格样式 xlsx，ExcelJS 仅类型引用 + 运行时 `await import` 懒加载，避免拖累课程页首屏）；网格分组/配色提取到 `utils/timetable.ts` 供网页渲染与导出共用。②**学校信息页**——抓取素质拓展平台+教务系统通知（均免登录公开接口，协议参照 `D:\Agent Program\浙大网页抓包` 项目：教务须用登录页新闻接口 `xwck_cxMoreLoginNews`，登录后的 `xwgl_*` 一律 901；素拓 `fbsj` 是 UTC ISO 转 +8；教务发布人是 `xwfbr` 不是 `fbr`），并注册 Agent 工具 `zju_get_notices`（read 级）。Electron 外链已有 `setWindowOpenHandler` → `shell.openExternal`，无需改动。

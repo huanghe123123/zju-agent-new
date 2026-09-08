@@ -14,6 +14,7 @@ import { settingsRoutes } from "./routes/settings.js";
 import { authRoutes } from "./routes/auth.js";
 import { zjuCoursesRoutes } from "./routes/zju-courses.js";
 import { zdbkRoutes } from "./routes/zdbk.js";
+import { noticesRoutes } from "./routes/notices.js";
 import { filesRoutes } from "./routes/files.js";
 import { agentRoutes } from "./routes/agent.js";
 import type { ServicesContainer } from "./services.js";
@@ -137,6 +138,7 @@ export async function createServer(deps: ServerDeps) {
   await app.register(authRoutes(deps), { prefix: "/api/auth" });
   await app.register(zjuCoursesRoutes(deps), { prefix: "/api/zju" });
   await app.register(zdbkRoutes(deps), { prefix: "/api/zju" });
+  await app.register(noticesRoutes(deps), { prefix: "/api/zju" });
   await app.register(filesRoutes(deps), { prefix: "/api/files" });
   await app.register(agentRoutes(deps), { prefix: "/api/agent" });
 

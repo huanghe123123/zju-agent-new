@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compressWeeks } from "../components/TimetableGrid.js";
+import { compressWeeks } from "../utils/timetable.js";
 
 describe("compressWeeks", () => {
   it("空数组返回空串", () => {

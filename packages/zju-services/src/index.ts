@@ -15,6 +15,7 @@ import { ClassroomService } from "./classroom/index.js";
 import { ZdbkService, semesterToXnxq01id, activeXnxq01ids, getAcademicPeriod, currentXnxq01id } from "./zdbk/index.js";
 import { NetworkService } from "./network/index.js";
 import { CalendarService } from "./calendar/index.js";
+import { NoticeService } from "./notices/index.js";
 
 export type ZjuServiceInstances = {
   am: ZJUAM;
@@ -142,6 +143,7 @@ export {
   ZdbkService,
   NetworkService,
   CalendarService,
+  NoticeService,
   semesterToXnxq01id,
   activeXnxq01ids,
   getAcademicPeriod,

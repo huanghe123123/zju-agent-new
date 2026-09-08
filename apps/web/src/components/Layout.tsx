@@ -6,6 +6,7 @@ import {
   faBookOpen,
   faListCheck,
   faGraduationCap,
+  faBullhorn,
   faFolderOpen,
   faGear,
   faChartSimple,
@@ -15,11 +16,19 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FloatingChat } from "./FloatingChat.js";
 import { useFloatingChatStore } from "../stores/useFloatingChat.js";
 
-const NAV_ITEMS: { to: string; label: string; icon: IconDefinition; end?: boolean }[] = [
+const NAV_ITEMS: {
+  to: string;
+  label: string;
+  /** 移动端底栏显示的短名（不传用 label） */
+  shortLabel?: string;
+  icon: IconDefinition;
+  end?: boolean;
+}[] = [
   { to: "/", label: "工作台", icon: faHouse, end: true },
   { to: "/courses", label: "课程表", icon: faBookOpen },
-  { to: "/assignments", label: "待办作业", icon: faListCheck },
-  { to: "/exams", label: "考试安排", icon: faGraduationCap },
+  { to: "/assignments", label: "待办作业", shortLabel: "作业", icon: faListCheck },
+  { to: "/exams", label: "考试安排", shortLabel: "考试", icon: faGraduationCap },
+  { to: "/school-info", label: "学校信息", shortLabel: "通知", icon: faBullhorn },
 ];
 
 export function Layout({
@@ -175,7 +184,7 @@ export function Layout({
             }
           >
             <FontAwesomeIcon icon={item.icon} className="text-sm" />
-            <span>{item.label}</span>
+            <span>{item.shortLabel ?? item.label}</span>
           </NavLink>
         ))}
         {/* 移动端下载与设置入口 */}
