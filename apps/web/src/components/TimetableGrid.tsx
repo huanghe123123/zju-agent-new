@@ -4,6 +4,7 @@ import {
   compressWeeks,
   courseNamesOf,
   groupTimetable,
+  periodTimeRange,
   COURSE_COLORS,
   DAY_LABELS,
   DAYS,
@@ -29,17 +30,18 @@ export function TimetableGrid({ entries: rawEntries }: { entries: TimetableEntry
       <div
         className="grid"
         style={{
-          minWidth: 750,
-          gridTemplateColumns: "48px repeat(7, minmax(0, 1fr))",
+          minWidth: 766,
+          gridTemplateColumns: "64px repeat(7, minmax(0, 1fr))",
           gridTemplateRows: `32px repeat(${MAX_SECTION}, minmax(48px, auto))`,
         }}
       >
         {/* 表头（sticky 随横向滚动条吸顶） */}
         <div
-          className="sticky top-0 z-20 flex items-center justify-center border-b border-r border-slate-200 bg-slate-50 p-1.5 text-[11px] font-medium text-slate-500"
+          className="sticky top-0 z-20 flex flex-col items-center justify-center border-b border-r border-slate-200 bg-slate-50 p-1.5 text-[11px] font-medium leading-tight text-slate-500"
           style={{ gridColumn: 1, gridRow: 1 }}
         >
-          节次
+          <span>节次</span>
+          <span className="text-[9px] font-normal text-slate-400">上课时间</span>
         </div>
         {DAYS.map((d) => (
           <div
@@ -51,14 +53,17 @@ export function TimetableGrid({ entries: rawEntries }: { entries: TimetableEntry
           </div>
         ))}
 
-        {/* 节次编号列 */}
+        {/* 节次编号列：节次 + 上课时间（时间来自 core 的浙大标准作息表） */}
         {Array.from({ length: MAX_SECTION }, (_, i) => i + 1).map((sec) => (
           <div
             key={`sec-${sec}`}
-            className="flex items-center justify-center border-b border-r border-slate-100 bg-slate-50/50 text-[10px] text-slate-400"
+            className="flex flex-col items-center justify-center gap-0.5 border-b border-r border-slate-100 bg-slate-50/50 px-0.5"
             style={{ gridColumn: 1, gridRow: sec + 1 }}
           >
-            {sec}
+            <span className="text-[11px] font-medium leading-none text-slate-500">{sec}</span>
+            <span className="text-[9px] leading-none text-slate-400">
+              {periodTimeRange(sec)}
+            </span>
           </div>
         ))}
 

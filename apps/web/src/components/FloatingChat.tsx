@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import { useFloatingChatStore } from "../stores/useFloatingChat.js";
+import { useAppSettings } from "../api/settings.js";
 import {
   useConversations,
   useConversation,
@@ -702,6 +703,9 @@ function toolLabel(name: string): string {
 }
 
 function HistoryBubble({ message }: { message: ChatMessage }) {
+  const { data: appSettings } = useAppSettings();
+  const avatar =
+    typeof appSettings?.avatarDataUrl === "string" ? appSettings.avatarDataUrl : undefined;
   if (message.role === "tool" || message.role === "system") return null;
   if (message.role === "assistant" && message.metadata?.toolCalls && !message.content) {
     const calls = message.metadata.toolCalls;
@@ -716,14 +720,26 @@ function HistoryBubble({ message }: { message: ChatMessage }) {
       </div>
     );
   }
-  return <Bubble role={message.role === "user" ? "user" : "assistant"}>{message.content}</Bubble>;
+  return (
+    <Bubble role={message.role === "user" ? "user" : "assistant"} avatar={avatar}>
+      {message.content}
+    </Bubble>
+  );
 }
 
-function Bubble({ role, children }: { role: "user" | "assistant"; children: React.ReactNode }) {
+function Bubble({
+  role,
+  children,
+  avatar,
+}: {
+  role: "user" | "assistant";
+  children: React.ReactNode;
+  avatar?: string;
+}) {
   const isUser = role === "user";
   const content = typeof children === "string" ? children : "";
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2.5`}>
+    <div className={`flex items-end gap-1.5 ${isUser ? "justify-end" : "justify-start"} mb-2.5`}>
       <div
         className={`max-w-[88%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
           isUser
@@ -733,6 +749,13 @@ function Bubble({ role, children }: { role: "user" | "assistant"; children: Reac
       >
         {isUser ? children : <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{content}</ReactMarkdown>}
       </div>
+      {isUser && avatar && (
+        <img
+          src={avatar}
+          alt=""
+          className="mb-0.5 size-6 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+        />
+      )}
     </div>
   );
 }

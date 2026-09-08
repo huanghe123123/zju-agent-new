@@ -3,11 +3,48 @@
  * 共用同一套摆放与配色规则，保证导出与页面所见一致。
  */
 
-import type { TimetableEntry } from "@zju-agent/core";
+import { ZJU_STANDARD_SESSION_TIMES, type TimetableEntry } from "@zju-agent/core";
 
 export const DAY_LABELS = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"] as const;
 export const MAX_SECTION = 13;
 export const DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
+/**
+ * 第 N 节课的起止时间，如 1 → "08:00-08:45"。
+ * 直接取 core 的浙大标准作息表（与后端日程流/桌面挂件用的是同一张表，只有一处定义）；
+ * 表里 index 0 是占位项，节次从 1 开始，越界返回空串。
+ */
+export function periodTimeRange(section: number): string {
+  if (!Number.isInteger(section) || section < 1) return "";
+  const slot = ZJU_STANDARD_SESSION_TIMES[section];
+  return slot ? `${slot[0]}-${slot[1]}` : "";
+}
+
+/** 连续节次的时间区间，如 (1, 2) → "08:00-09:35" */
+export function periodSpanTimeRange(startSection: number, endSection: number): string {
+  if (
+    !Number.isInteger(startSection) ||
+    !Number.isInteger(endSection) ||
+    startSection < 1 ||
+    endSection < startSection
+  ) {
+    return "";
+  }
+  const start = ZJU_STANDARD_SESSION_TIMES[startSection]?.[0];
+  const end = ZJU_STANDARD_SESSION_TIMES[endSection]?.[1];
+  return start && end ? `${start}-${end}` : "";
+}
+
+/** 节次区间标签："第1-2节" / "第6节"；考试等没有节次信息的条目返回空串 */
+export function sectionRangeLabel(
+  startSection?: number,
+  endSection?: number,
+): string {
+  if (!startSection || !endSection || endSection < startSection) return "";
+  return startSection === endSection
+    ? `第${startSection}节`
+    : `第${startSection}-${endSection}节`;
+}
 
 /** 网页端课程块配色（Tailwind v3 刻度），按课程名首次出现顺序循环取色 */
 export const COURSE_COLORS = [

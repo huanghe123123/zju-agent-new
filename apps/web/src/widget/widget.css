@@ -1,0 +1,26 @@
+/* 挂件必须完全透明，让 Electron 窗口的材质（亚克力 / rgba）透出 */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: transparent !important;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* 细滚动条，避免半透明面板里出现粗大的默认滚动条 */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.25);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

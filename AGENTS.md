@@ -26,10 +26,11 @@ pnpm build              # 全量构建
 pnpm --filter @zju-agent/web build     # 单包构建（filter 用包名）
 ```
 
-- Windows 用户可直接双击根目录 **`start-dev.bat`** 一键启动（环境检查→装依赖→起前后端→开浏览器，带端口占用防重复启动）。注意：该文件是 **GBK 编码 + CRLF**（cmd 中文必需），勿用编辑器另存为 UTF-8。
+- Windows 用户可直接双击根目录 **`start-dev.bat`** 一键启动：环境检查 → 装依赖 → 由 `scripts/dev-launcher.mjs` 把前后端**后台隐藏托管**（日志写 `.run/server.log`、`.run/web.log`）+ 拉起系统托盘 + 桌面挂件 → 服务就绪后自动打开浏览器。**不再弹出两个终端窗口**；双击 **`stop-dev.bat`**（或托盘菜单「退出」）停止服务。托盘菜单：打开主界面 / 显示·隐藏挂件 / 打开日志目录 / 重启服务 / 退出。
+- `start-dev.bat` / `stop-dev.bat` 都是 **GBK 编码 + CRLF**（cmd 中文必需），勿用编辑器另存为 UTF-8。
 - `pnpm dev` 会并行跑所有包的 dev，一般不需要；日常用上面两条 dev 命令或 bat。
-- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 4 个套件 42 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`（从 `utils/timetable.ts` 导入）、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）、`packages/zju-services/src/notices/index.test.ts`（通知解析/日期转换，样本来自抓包项目 fixtures）。新增纯函数时应配套 `*.test.ts`。
-- **ESLint 已接入**（eslint.config.js：typescript-eslint recommended + react-hooks + tailwindcss `no-custom-classname`，后者可拦截 v3 下不存在的类名如 `p-4.5`）。改完代码跑 `pnpm lint`。注意 `no-custom-classname` 白名单里有 `fa-fw`（FontAwesome）和 `input`（Settings.tsx 内联样式）两个非 Tailwind 类。
+- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 7 个套件 58 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`（从 `utils/timetable.ts` 导入）、`apps/web/src/__tests__/timetablePeriods.test.ts`（1-13 节作息时间/节次标签）、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）、`packages/zju-services/src/notices/index.test.ts`（通知解析/日期转换，样本来自抓包项目 fixtures）、`packages/server/src/agent/prompt.test.ts`（系统提示词拼装 + 只读工具过滤）、`packages/llm/src/adapters/openai.test.ts`（joinUrl 版本段处理）。新增纯函数时应配套 `*.test.ts`。
+- **ESLint 已接入**（eslint.config.js：typescript-eslint recommended + react-hooks + tailwindcss `no-custom-classname`，后者可拦截 v3 下不存在的类名如 `p-4.5`）。改完代码跑 `pnpm lint`。注意 `no-custom-classname` 白名单里有 `fa-fw`（FontAwesome）和 `input`（Settings.tsx 内联样式）两个非 Tailwind 类；`.run/**` 已在 ignores 中（开发期运行时目录）。
 - ZJU 认证 happy path 的 bug 仍需真实凭据手工端到端验证（见 §14）。
 
 ## 3. 技术栈
@@ -52,13 +53,17 @@ zju-agent-new/
 ├── README.md                  ← 项目简介
 ├── ZJU_CAMPUS_AGENT_PROJECT.md  ← 44KB 完整项目规格书（需求/阶段规划）
 ├── start-dev.bat              ← Windows 一键启动（GBK 编码，勿转 UTF-8）
+├── stop-dev.bat               ← 停止后台服务（GBK 编码）
+├── scripts/
+│   ├── dev-launcher.mjs       ← start-dev.bat 唯一入口：构建 → 端口探测 → 隐藏启动 Electron
+│   └── stop-dev.mjs           ← 按 PID 文件 + 端口反查杀进程树
 ├── eslint.config.js           ← ESLint 9 flat config（根）
 ├── vitest.config.ts           ← vitest 配置（根，收集各包 *.test.ts）
 ├── tsconfig.base.json         ← 全仓共享 TS 配置（见 §11 约定）
 ├── pnpm-workspace.yaml / .npmrc / pnpm-lock.yaml
 ├── apps/
 │   ├── web/                   ← React SPA（唯一前端）
-│   └── desktop/               ← Electron 壳（main.ts / preload.ts，esbuild 打包脚本 + electron-builder.yml）
+│   └── desktop/               ← Electron 壳（main.ts 双模式：桌面应用 / --launcher 隐藏托管+托盘+挂件；preload.ts；esbuild 打包脚本 + electron-builder.yml）
 ├── packages/
 │   ├── core/                  ← 平台无关共享类型（仅依赖 zod）
 │   ├── server/                ← Fastify 应用（路由/Agent 循环/存储/认证）
@@ -68,7 +73,8 @@ zju-agent-new/
 │   └── scheduler/             ← 预留抽象缝（近空）
 └── docs/
     ├── celechron-schedule-reference.md   ← 校历课表格式参考
-    └── code-review-2026-09-08.md         ← 代码审查报告（全部问题已修复，含各项修复说明）
+    ├── code-review-2026-09-08.md         ← 代码审查报告（全部问题已修复，含各项修复说明）
+    └── widget-material-comparison.md     ← 桌面挂件两种材质实测对比（亚克力 vs CSS 半透明）
 ```
 
 ## 5. 架构与数据流
@@ -104,7 +110,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 | `errors.ts` | `AppError`、`ErrorCode` 枚举 |
 | `tools.ts` | Agent 工具定义类型 |
 | `agent.ts` | Agent 消息/会话类型 |
-| `settings.ts` | 设置项类型 |
+| `settings.ts` | 设置项类型（含个性化：`nickname` / `avatarDataUrl` / `personaPrompt`） |
 | `auth.ts` | 凭据状态类型 |
 | `domain/courses.ts` | 学在浙大：课程/课件/作业/测验 |
 | `domain/zdbk.ts` | 教务网：`TimetableEntry`（课表条目）、`mergeTimetableEntries`（合并连续节次）、考试、成绩 |
@@ -151,8 +157,10 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 ### 9.2 Agent 系统（`src/agent/`）
 
 - `tools.ts`（740 行）：`buildTools(deps)` 注册工具，每个带 `riskLevel`（`read` / `write` / `payment` / `external_download`）与 `requiresConfirmation`。`read` 直接执行；高风险工具进 `pending_confirmations`（**5 分钟 TTL**），用户经 `POST /api/agent/confirm` 批准后才执行。
-- `loop.ts`（443 行）：`AgentLoop` 最多 **8 轮**迭代：流式调 LLM → 收集文本+tool_calls → 持久化 assistant 消息 → 执行工具（或停在确认点）→ 结果回喂。`resumeAfterConfirm`/`resumeAfterReject` 恢复暂停的循环。Provider 取加密设置 `model-providers` 中第一个 `enabled` 条目。
+- `prompt.ts`：**纯函数** `buildSystemPrompt({datetime, period, brief, profile})` 拼装系统提示（基础人设 + 昵称/自述个性化 + 挂件极简模式）与 `filterToolsForMode(tools, readOnly)`；单测见 `prompt.test.ts`。
+- `loop.ts`：`AgentLoop(deps, { readOnly?, brief? })` 最多 **8 轮**迭代：流式调 LLM → 收集文本+tool_calls → 持久化 assistant 消息 → 执行工具（或停在确认点）→ 结果回喂。`resumeAfterConfirm`/`resumeAfterReject` 恢复暂停的循环。Provider 取加密设置 `model-providers` 中第一个 `enabled` 条目；昵称/人设从明文设置 `app-settings` 读取。
 - 聊天走 **SSE**：`POST /api/agent/chat` 与 `/confirm` 以 `data: <json>\n\n` 流式推送事件；会话与消息持久化到 SQLite（`conversations`/`messages` 表），重连可恢复。
+- **挂件一次性问答**：`POST /api/agent/chat` 带 `mode: "widget"` 时，不建会话、不落库（`persist: false`）、只用只读工具（`readOnly`）、系统提示追加极简约束（`brief`）；`done` 事件里的 conversationId 是虚拟值 `widget-ephemeral`。
 
 ### 9.3 存储（`src/storage/`，SQLite 表）
 
@@ -188,7 +196,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 
 - `Layout.tsx`（235 行）：应用外壳——侧边栏、底部导航（移动端）、右面板、挂载 FloatingChat。
 - `FloatingChat.tsx`：**全局悬浮 AI 聊天窗**（唯一在用的聊天实现）。拖拽移动、最小化、展开、工具步骤实时展示、风险操作确认。
-- `TimetableGrid.tsx`：课表网格（**CSS Grid 显式定位**：`gridTemplateColumns: 48px + 7×1fr`，`gridTemplateRows: 32px + 13×minmax(48px, auto)`；格子按 `gridColumn`/`gridRow` 精确放置负责画线，课程块用 `gridRow: span N` 跨行随行高伸缩；同格多门课 flex 并排）。**勿改回绝对定位手算高度的方案**（已根除的漂移 bug）。导出 `compressWeeks`（周次压缩）。
+- `TimetableGrid.tsx`：课表网格（**CSS Grid 显式定位**：`gridTemplateColumns: 64px + 7×1fr`，`gridTemplateRows: 32px + 13×minmax(48px, auto)`；格子按 `gridColumn`/`gridRow` 精确放置负责画线，课程块用 `gridRow: span N` 跨行随行高伸缩；同格多门课 flex 并排）。**勿改回绝对定位手算高度的方案**（已根除的漂移 bug）。首列显示「节次 + 上课时间」（时间取自 core 的 `ZJU_STANDARD_SESSION_TIMES`，经 `utils/timetable.ts` 的 `periodTimeRange` 取用）。导出 `compressWeeks`（周次压缩）。
 - `ServerStatusBanner.tsx` / `ErrorBoundary.tsx` / `ErrorState.tsx` / `Loading.tsx`。
 
 ### 11.3 Dashboard 五大区块
@@ -199,12 +207,23 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 
 - `bootstrap.ts`：token 存取（zustand store + localStorage）、`useApiFetch()`、`useTokenUrl()`（二进制资源 `?token=`）。
 - `zju.ts`：`useSemesters` / `useCourses` / `useMaterials` / `useCourseAssignments` / `useCourseQuizzes` / `useAllAssignments` / `useDownloadMaterial` / `useDownloads` / `useDeleteDownload` / `downloadPreviewUrl` / `useExams` / `useTimetable` / `useGrades` / `useUpcomingSchedule48h` / `useNotices`。
-- `agent.ts`：`useConversations` / `useConversation` / `useSendMessage`（SSE）/ `useConfirmTool` / `useDeleteConversation`，`AgentEvent` SSE 事件类型。
+- `agent.ts`：`useConversations` / `useConversation` / `useSendMessage`（SSE）/ `useQuickAsk`（挂件一次性问答，`mode: "widget"`）/ `useConfirmTool` / `useDeleteConversation`，`AgentEvent` SSE 事件类型。
+- `settings.ts`：`useAppSettings` / `useSaveAppSettings`（`app-settings` 是整体覆盖式 PUT，保存时必须带上已有字段）/ `fileToAvatarDataUrl`（前端压成 256×256 JPEG data URL）。
 - `auth.ts`：`useAuthStatus` / `useValidateCredential` / `useLogout`。
 
 ### 11.5 状态与其他
 
-`stores/useFloatingChat.ts`（zustand：开/关/最小化/展开/位置/预填 prompt/活跃会话）；`utils/format.ts`、`utils/sanitizeHtml.ts`；`styles/global.css`（仅 Tailwind 指令）；`main.tsx` 引入 `@crisp-ui-kit/crisp/styles.css` 并挂全局 ErrorBoundary；`vite.config.ts` 代理 `/api` → `ZJU_AGENT_BACKEND ?? http://127.0.0.1:7788`，`base: "./"`（便于 Electron 复用）。
+`stores/useFloatingChat.ts`（zustand：开/关/最小化/展开/位置/预填 prompt/活跃会话）；`utils/format.ts`、`utils/sanitizeHtml.ts`；`styles/global.css`（仅 Tailwind 指令）；`main.tsx` 引入 `@crisp-ui-kit/crisp/styles.css` 并挂全局 ErrorBoundary；`vite.config.ts` 代理 `/api` → `ZJU_AGENT_BACKEND ?? http://127.0.0.1:7788`，`base: "./"`（便于 Electron 复用），`build.rollupOptions.input` 双入口（`index.html` + `widget.html`）。
+
+### 11.6 桌面挂件入口（widget.html）
+
+**独立 Vite 入口**，不套 `Layout`/Router/`ServerStatusBanner`：`widget.html` → `src/widget/main.tsx`（QueryClient + ErrorBoundary）→ `src/widget/WidgetApp.tsx`（+ `WidgetChat.tsx`）。要点：
+
+- 数据只用一个 hook `useUpcomingSchedule48h()`（48h 日程 + 待办作业 + 周次信息，60s 自动刷新）；秒级倒计时在页面内 `setInterval` 本地算，不发额外请求。课程行显示「第X-Y节 + 起止时间 + 地点」（`utils/timetable.ts` 的 `sectionRangeLabel`，考试等无节次信息则不显示节次）。
+- **背景是纯 CSS 半透明**（`bg-slate-900/60`），窗口不调用任何系统材质——Electron 的 acrylic 在「无边框 + 透明 + 置顶」窗口上只会渲染成灰板，实测见 `docs/widget-material-comparison.md`。窗口 380×560 DIP，贴主屏右边缘垂直居中。
+- **底部对话条**（`WidgetChat.tsx`）走 `useQuickAsk()` → `mode: "widget"`：一次性问答、只读工具、服务端强制简短回答；答案只留在挂件内，换问题即覆盖，不写数据库。
+- 未连上后端时每 3 秒重试 `bootstrap()`（后端可能比挂件晚就绪）；`src/widget/widget.css` 强制 `html/body/#root` 透明，否则 `global.css` 的 `body` 浅色底会挡住窗口透明。
+- 托盘/窗口 IPC 只有两个通道：`widget:hide`、`widget:open-app`（preload 暴露为 `window.electronAPI.widget.*`，浏览器中为 `undefined`，页面内有回退）。
 
 ## 12. 编码约定与已知陷阱（违反必出 bug）
 
@@ -216,7 +235,13 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 6. **Tailwind 是 v3.4，不是 v4**：v4 专属类名会**静默失效**（无报错）。写样式时只用 v3 刻度：间距 4→5（无 4.5），阴影 `shadow-sm`~`shadow-2xl`（无 xs/2xs/3xl），圆角最小 `rounded-sm`（无 `*-xs`）。**防线已接入**：`eslint-plugin-tailwindcss` 的 `no-custom-classname` 规则会在 lint 时报错拦截；另外项目**未装** typography 插件，`prose`/`prose-xs` 等类同样是无效的。
 7. **crisp-ui-kit 的 `<Card>` 自身零内边距**：padding 必须自己传（如 `className="p-4"`）；`.card-body` 类未使用。
 8. **login-zju 的 console 泄密**：见 §8 `runQuiet`，勿绕过。
-9. **`start-dev.bat` 是 GBK 编码**：中文 bat 在中文 Windows 上必须 GBK+CRLF，UTF-8 会导致 cmd 解析错乱。
+9. **`start-dev.bat` / `stop-dev.bat` 是 GBK 编码**：中文 bat 在中文 Windows 上必须 GBK+CRLF，UTF-8 会导致 cmd 解析错乱。改这两个文件要 `iconv -f UTF-8 -t GBK` 后写回，并保持 CRLF。
+10. **隐藏托管进程的停止必须杀进程树**：`pnpm dev:server` → pnpm → node → tsx 是多层子进程，`child.kill()` 只杀最外层，端口会被孤儿进程占着。统一用 `taskkill /PID <pid> /T /F`（见 `scripts/stop-dev.mjs` 与 `apps/desktop/src/launcher.ts` 的 `killTree`）。Electron launcher 自身被强杀时，靠 `stop-dev.mjs` 的端口反查兜底。
+11. **挂件窗口创建要等前端就绪**：Vite 未起来时 `loadURL` 会失败并在日志里留 `ERR_CONNECTION_REFUSED`；`main.ts` 的 launcher 流程是 `start()` → `waitUntilReady()` → `recreateWidget()`，`widget-window.ts` 里还有 `did-fail-load` 重试 + `did-finish-load` 才 `showInactive()` 的双保险。
+12. **Electron 亚克力在置顶窗口上不可用**：`transparent:true` + `setBackgroundMaterial('acrylic')` + `alwaysOnTop` 只会得到纯灰 `#545454`（Electron 33/38 一致，激活窗口也一样）；不置顶时材质干脆不生效。挂件因此只用 CSS 半透明，别再改回去——详见 `docs/widget-material-comparison.md`。另：`desktopCapturer` 在本机返回冻结画面，不能用来做实时模糊。
+13. **LLM baseUrl 的版本段**：`joinUrl()`（`packages/llm/src/adapters/openai.ts`）只在 baseUrl 没有版本段时补 `/v1`。智谱 GLM 的 baseUrl 是 `https://open.bigmodel.cn/api/paas/v4`，必须直接拼 `/chat/completions`；早期实现无条件补 `/v1` 会打到 `/v4/v1/chat/completions` 返回 404。改这里要跑 `openai.test.ts`。
+14. **个性化设置存在 `app-settings` 明文 JSON 里**：`PUT /api/settings/app` 是**整体覆盖**，前端保存前必须把 `useAppSettings()` 拿到的对象展开再改字段，否则会清掉其他设置（如下载目录）。
+15. **上课时间只有一处定义**：`packages/core/src/domain/schedule.ts` 的 `ZJU_STANDARD_SESSION_TIMES`（1-13 节 08:00 起，14/15 节为夜间加课；index 0 是占位项）。后端日程流/挂件用它算 `startTimeStr`，前端课表网格/Excel 导出经 `apps/web/src/utils/timetable.ts` 的 `periodTimeRange`/`sectionRangeLabel` 取同一张表——**不要在页面里另抄一份时间**，作息调整只改 core 一处（`timetablePeriods.test.ts` 会守住这张表）。
 
 ## 13. 数据目录（运行时产生，不入库）
 
@@ -244,3 +269,5 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 - 可能的下一步：作业提交（学在浙大唯一缺的 must-have）、下载目录配置 UI。
 - 2026-09-08 完成两轮修复：第一轮修「学业快览」统计卡对齐 bug（`p-4.5` 失效）；第二轮修复审查报告全部 P1–P3 遗留问题（v4 残留类名、删除死代码 Chat.tsx/Toolbox.tsx、TimetableGrid 重构为 CSS Grid、吞错日志、凭据 v2 格式+密钥缓存、preSerialization、vitest+ESLint 接入等）。各项修复细节见 **`docs/code-review-2026-09-08.md`**（已全部标注 ✅）。
 - 2026-09-08 新增两个功能：①**课表导出**——课程页工具栏「导出图片/导出 Excel」（`utils/exportTimetable.ts`：html-to-image 截离屏节点出 PNG；ExcelJS 生成网格样式 xlsx，ExcelJS 仅类型引用 + 运行时 `await import` 懒加载，避免拖累课程页首屏）；网格分组/配色提取到 `utils/timetable.ts` 供网页渲染与导出共用。②**学校信息页**——抓取素质拓展平台+教务系统通知（均免登录公开接口，协议参照 `D:\Agent Program\浙大网页抓包` 项目：教务须用登录页新闻接口 `xwck_cxMoreLoginNews`，登录后的 `xwgl_*` 一律 901；素拓 `fbsj` 是 UTC ISO 转 +8；教务发布人是 `xwfbr` 不是 `fbr`），并注册 Agent 工具 `zju_get_notices`（read 级）。Electron 外链已有 `setWindowOpenHandler` → `shell.openExternal`，无需改动。
+- 2026-09-08 新增**后台隐藏托管 + 系统托盘 + 桌面挂件**：`start-dev.bat` 不再弹两个终端窗口，改由 `scripts/dev-launcher.mjs` 启动 `apps/desktop` 的 **launcher 模式**（`--launcher`）：隐藏托管 `pnpm dev:server`/`dev:web`（日志 `.run/*.log`）、系统托盘（打开主界面/显示隐藏挂件/打开日志/重启服务/退出）、桌面挂件（`apps/web/widget.html` 独立入口，显示 48h 日程+待办作业）。
+- 2026-09-08 晚（第三轮）：①**修挂件背景**——实测 Electron 原生亚克力在「无边框+透明+置顶」窗口上只会渲染成灰板（Electron 33/38 一致），改为**纯 CSS 半透明**并删掉材质切换；挂件尺寸 320×440 → **380×560**；实测与结论见 `docs/widget-material-comparison.md`。②**挂件 AI 对话条**——`WidgetChat.tsx` + `POST /api/agent/chat` 的 `mode: "widget"`：一次性问答、不落库、只读工具、服务端强制简短回答。③**个性化**——设置页新增「个性化」（昵称 / 头像 / 默认提示词），主页问候语与聊天头像用它，昵称与人设注入所有 AI 对话的系统提示。④修 `joinUrl` 无条件补 `/v1` 导致智谱 GLM（baseUrl `.../paas/v4`）404 的 bug。

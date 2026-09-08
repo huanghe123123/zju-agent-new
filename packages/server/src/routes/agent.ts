@@ -21,9 +21,12 @@ import { ok, wrap, AppError, ErrorCode } from "@zju-agent/core";
 import type { AgentStreamEvent, AgentMessage } from "@zju-agent/core";
 import type { ServicesContainer } from "../services.js";
 import type { ServerConfig } from "../config/env.js";
-import { AgentLoop } from "../agent/loop.js";
+import { AgentLoop, type AgentLoopOptions } from "../agent/loop.js";
 import { recordToMessage } from "../storage/conversations.js";
 import { logger } from "../config/logger.js";
+
+/** 挂件一次性问答用的虚拟会话 id（不落库，仅用于工具上下文/日志） */
+const WIDGET_EPHEMERAL_CONVERSATION = "widget-ephemeral";
 
 export function agentRoutes(
   deps: ServicesContainer & { config: ServerConfig },
@@ -31,12 +34,27 @@ export function agentRoutes(
   return async (app) => {
     // --- 发起对话 ---
     app.post<{
-      Body: { conversationId?: string; message?: string };
+      Body: { conversationId?: string; message?: string; mode?: "web" | "widget" };
     }>("/chat", async (req, reply) => {
       const body = req.body ?? {};
       const message = (body.message ?? "").trim();
       if (!message) {
         return failBody(reply, 400, ErrorCode.TOOL_INPUT_INVALID, "消息不能为空。");
+      }
+
+      // 桌面挂件：一次性问答——不建会话、不落库、只挂只读工具、要求极简回答
+      if (body.mode === "widget") {
+        const widgetHistory: AgentMessage[] = [
+          { role: "user", content: message },
+        ];
+        return streamAgentRun(
+          deps,
+          reply,
+          WIDGET_EPHEMERAL_CONVERSATION,
+          widgetHistory,
+          { loop: { readOnly: true, brief: true }, persist: false },
+          (loop, cb) => loop.run(widgetHistory, cb),
+        );
       }
 
       // 取或创建会话
@@ -57,7 +75,7 @@ export function agentRoutes(
       deps.conversations.appendMessage(conv.id, userMsg);
       history.push(userMsg);
 
-      return streamAgentRun(deps, reply, conv.id, history, (loop, cb) =>
+      return streamAgentRun(deps, reply, conv.id, history, {}, (loop, cb) =>
         loop.run(history, cb),
       );
     });
@@ -93,7 +111,7 @@ export function agentRoutes(
         .listMessages(conv.id)
         .map((r) => recordToMessage(r));
 
-      return streamAgentRun(deps, reply, conv.id, history, (loop, cb) =>
+      return streamAgentRun(deps, reply, conv.id, history, {}, (loop, cb) =>
         decision === "approve"
           ? loop.resumeAfterConfirm(confirmationId, history, cb)
           : loop.resumeAfterReject(confirmationId, history, cb),
@@ -129,12 +147,21 @@ export function agentRoutes(
   };
 }
 
+/** 单次运行的附加选项 */
+type StreamRunOptions = {
+  /** AgentLoop 运行参数（只读 / 简短模式） */
+  loop?: AgentLoopOptions;
+  /** 是否把消息落库；挂件一次性问答传 false */
+  persist?: boolean;
+};
+
 /** 把 AgentStreamEvent 通过 SSE 推给前端 */
 async function streamAgentRun(
   deps: ServicesContainer & { config: ServerConfig },
   reply: FastifyReply,
   conversationId: string,
   _history: AgentMessage[],
+  options: StreamRunOptions,
   run: (
     loop: AgentLoop,
     cb: AgentLoopCallbacks,
@@ -149,7 +176,7 @@ async function streamAgentRun(
     reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
-  const loop = new AgentLoop(deps);
+  const loop = new AgentLoop(deps, options.loop);
   loop.setConversationId(conversationId);
 
   // 客户端断开（关页/断网）时中止 loop，避免后台继续消耗 LLM 与执行工具
@@ -161,9 +188,12 @@ async function streamAgentRun(
 
   const cb: AgentLoopCallbacks = {
     emit: send,
-    persist: (msg: AgentMessage) => {
-      deps.conversations.appendMessage(conversationId, msg);
-    },
+    persist:
+      options.persist === false
+        ? () => {}
+        : (msg: AgentMessage) => {
+            deps.conversations.appendMessage(conversationId, msg);
+          },
   };
 
   try {

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "../components/Layout.js";
 import { useAuthStatus } from "../api/auth.js";
 import { useApiFetch } from "../api/bootstrap.js";
+import { useAppSettings } from "../api/settings.js";
 import {
   useCourses,
   useSemesters,
@@ -143,6 +144,14 @@ export function DashboardPage() {
   const loggedIn = authStatus?.ok ?? false;
   const dateInfo = upcomingData?.dateInfo;
 
+  // 个性化：昵称 / 头像（未设置时回落到学号）
+  const { data: appSettings } = useAppSettings();
+  const nickname =
+    typeof appSettings?.nickname === "string" ? appSettings.nickname.trim() : "";
+  const avatar =
+    typeof appSettings?.avatarDataUrl === "string" ? appSettings.avatarDataUrl : undefined;
+  const greetingName = nickname || (loggedIn ? authStatus?.username : undefined);
+
   // 获取模型设置状态
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ["settings"],
@@ -266,11 +275,20 @@ export function DashboardPage() {
         {/* === 顶部工作台概览 (Crisp Workspace Header) === */}
         <Card raised className="p-4 sm:p-5 bg-white border border-slate-200/80">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt=""
+                  className="size-10 shrink-0 rounded-full object-cover shadow-sm ring-2 ring-white"
+                />
+              ) : (
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-zju-primary">
+                  <FontAwesomeIcon icon={faGraduationCap} className="text-base" />
+                </div>
+              )}
               <span className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                {loggedIn && authStatus?.username
-                  ? `你好，${authStatus.username}`
-                  : "你好，浙大学子"}
+                {greetingName ? `你好，${greetingName}` : "你好，浙大学子"}
               </span>
               {dateInfo && (
                 <Badge tone="neutral" size="medium">

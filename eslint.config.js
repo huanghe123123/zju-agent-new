@@ -18,6 +18,8 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/*.d.ts",
       "apps/desktop/build/**",
+      // 开发期运行时目录（日志 / PID / 一次性探针脚本），已在 .gitignore 中
+      ".run/**",
     ],
   },
   // 基础 TS 规则（全仓）

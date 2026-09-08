@@ -60,6 +60,19 @@ packages/
 
 ### 安装与启动
 
+**Windows 一键启动（推荐）**：双击根目录 `start-dev.bat`。
+
+它会自动完成环境检查、依赖安装，然后把前后端**在后台隐藏托管**（不弹出终端窗口），
+并拉起系统托盘与桌面挂件，服务就绪后自动打开浏览器。
+
+- 托盘图标右键：打开主界面 / 显示·隐藏挂件 / 打开日志目录 / 重启服务 / 退出
+- 桌面挂件：贴在屏幕右侧的半透明面板（380×560），显示未来 48 小时日程与待办作业（每分钟自动刷新），
+  底部可以直接问 AI——只走只读查询、服务端强制简短回答，且不写入聊天历史
+- 停止服务：双击 `stop-dev.bat`，或托盘菜单「退出」
+- 运行日志：`.run/server.log`、`.run/web.log`、`.run/launcher.log`
+
+**手动启动（跨平台 / 调试用）**：
+
 ```bash
 pnpm install
 
@@ -74,6 +87,18 @@ pnpm dev:web
 
 > 开发期后端会经 `/api/bootstrap` 下发访问 token 给前端；生产期需由 Electron 注入或文件读取。
 
+### 个性化
+
+设置页 →「个性化」可以配置昵称、头像与默认提示词：主页问候语与聊天头像会使用它们，
+昵称和提示词会注入所有 AI 对话（网页聊天与桌面挂件），让回答更贴合你的年级/专业/兴趣。
+头像在前端压缩到 256×256 后仅存本机 SQLite，不上传。
+
+### 桌面挂件背景
+
+挂件用**纯 CSS 半透明**（桌面内容透出、不模糊）。Windows 11 + Electron 的原生亚克力材质在
+「无边框 + 透明 + 置顶」窗口上只会渲染成灰板，实测过程与替代方案（壁纸模糊 / 实时截屏模糊）
+见 [`docs/widget-material-comparison.md`](docs/widget-material-comparison.md)。
+
 ### 构建
 
 ```bash
@@ -82,6 +107,6 @@ pnpm build
 
 ## 跨平台规划（第二阶段）
 
-- **Windows 桌面**：Electron 主进程启动 `packages/server`，renderer 复用 `apps/web` 构建产物，`electron-builder` 打包。
+- **Windows 桌面**：Electron 主进程启动 `packages/server`，renderer 复用 `apps/web` 构建产物，`electron-builder` 打包。当前 `apps/desktop` 的 `--launcher` 模式已用于开发期隐藏托管前后端 + 托盘 + 桌面挂件。
 - **Android**：Capacitor 复用 `apps/web`，Node 本地服务以插件或自托管后端形式接入。
 - 平台相关能力（打开文件夹、系统通知、文件选择）通过 `PlatformBridge` 抽象，不写死在业务层。

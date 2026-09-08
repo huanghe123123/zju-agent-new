@@ -115,8 +115,32 @@ export function useSendMessage() {
   });
 }
 
-/** 确认/拒绝工具：同样走 SSE */
-export function useConfirmTool() {
+/**
+ * 桌面挂件的一次性问答：`mode: "widget"` 表示
+ * 不建会话、不落库、只用只读工具、服务端强制简短回答。
+ */
+export function useQuickAsk() {
+  const apiFetch = useApiFetch();
+  return useMutation({
+    mutationFn: async (input: {
+      message: string;
+      onEvent: (event: AgentEvent) => void;
+    }) => {
+      const res = await apiFetch("/api/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+        body: JSON.stringify({ message: input.message, mode: "widget" }),
+      });
+      if (!res.ok || !res.body) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `请求失败 (HTTP ${res.status})`);
+      }
+      return consumeSSE(res.body, input.onEvent);
+    },
+  });
+}
+
+/** 确认/拒绝工具：同样走 SSE */export function useConfirmTool() {
   const apiFetch = useApiFetch();
   const qc = useQueryClient();
   return useMutation({

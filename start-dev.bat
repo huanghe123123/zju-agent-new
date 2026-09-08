@@ -40,35 +40,22 @@ if not exist "node_modules" (
     echo.
 )
 
-rem ---- 端口占用检测（已在运行则跳过，避免重复启动）----
-set "BACKEND_RUNNING=0"
-set "FRONTEND_RUNNING=0"
-netstat -ano | findstr /c:":7788" | findstr /c:"LISTENING" >nul 2>nul && set "BACKEND_RUNNING=1"
-netstat -ano | findstr /c:":5173" | findstr /c:"LISTENING" >nul 2>nul && set "FRONTEND_RUNNING=1"
-
-if "%BACKEND_RUNNING%"=="1" (
-    echo [跳过] 后端已在运行（端口 7788 被占用）。
-) else (
-    echo [启动] 后端 Fastify 服务...
-    start "zju-agent 后端 (7788)" cmd /k "pnpm dev:server"
+rem ---- 后台隐藏启动：前后端服务 + 系统托盘 + 桌面挂件 ----
+rem 原先两个可见的 cmd 窗口已取消，服务输出改写到 .run\server.log 与 .run\web.log
+node "%~dp0scripts\dev-launcher.mjs"
+if errorlevel 1 (
+    echo.
+    echo [错误] 启动失败，请查看上方输出或 .run\launcher.log。
+    pause
+    exit /b 1
 )
-
-if "%FRONTEND_RUNNING%"=="1" (
-    echo [跳过] 前端已在运行（端口 5173 被占用）。
-) else (
-    echo [启动] 前端 Vite 开发服务器...
-    start "zju-agent 前端 (5173)" cmd /k "pnpm dev:web"
-)
-
-rem ---- 等待服务就绪后打开浏览器（约 6 秒）----
-echo [提示] 等待服务就绪...
-ping -n 7 127.0.0.1 >nul
-start "" "http://localhost:5173/"
 
 echo.
 echo ==================================================
-echo   启动完成！前后端各运行在一个独立命令行窗口中，
-echo   关闭对应窗口即可停止该服务。本窗口可以关闭。
+echo   启动完成！前后端已在后台隐藏运行，不再占用任务栏。
+echo   托盘图标可控制：显示/隐藏挂件、切换材质、查看日志、停止服务。
+echo   需要停止时，双击 stop-dev.bat 或使用托盘菜单「退出」。
+echo   本窗口将在 3 秒后自动关闭。
 echo ==================================================
-echo.
-pause
+ping -n 4 127.0.0.1 >nul
+exit /b 0
