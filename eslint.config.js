@@ -56,10 +56,24 @@ export default tseslint.config(
     plugins: { tailwindcss: tailwindPlugin },
     rules: {
       // fa-fw 是 FontAwesome 自带类（由 fontawesome-svg-core 注入），
-      // input 是 Settings.tsx 内联 <style> 定义的自定义类——均非 Tailwind 类
+      // input 是 Settings.tsx 内联 <style> 定义的自定义类，
+      // paper-card/seal-stamp/juan-badge/ink-input/btn-ink-* 是 global.css
+      // @layer components 定义的纸墨主题组件类——均非 Tailwind 原子类
       "tailwindcss/no-custom-classname": [
         "error",
-        { whitelist: ["fa-fw", "input"] },
+        {
+          whitelist: [
+            "fa-fw",
+            "input",
+            "paper-card",
+            "seal-stamp",
+            "juan-badge",
+            "ink-input",
+            "btn-ink-primary",
+            "btn-ink-outline",
+            "btn-ink-danger",
+          ],
+        },
       ],
       "tailwindcss/classnames-order": "off",
     },

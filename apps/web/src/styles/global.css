@@ -1,17 +1,118 @@
+/* === 求是书院 · 纸墨学术风 ===
+ * 字体本地自托管（@fontsource），不依赖外网 CDN，Electron 离线可用。
+ */
+@import "@fontsource-variable/noto-serif-sc";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource/ma-shan-zheng";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: light;
+
+  /* crisp-ui-kit 令牌 → 纸墨主题（Badge/Card/Segmented/Progress 等组件自动跟随）。
+     必须写在 @layer 外：layer 内规则优先级低于未分层规则，会被 crisp 的 :root 盖掉。 */
   --bg-brand-solid: #003f88;
   --bg-brand-solid-pressed: #00326e;
+  --fg-on-brand: #f6efdc;
+  --bg-surface: #fdfaf2;
+  --bg-raised: #eee5cf;
+  --border-default: rgba(14, 28, 56, 0.22);
+  --border-subtle: rgba(14, 28, 56, 0.12);
+  --fg-primary: #22304e;
+  --fg-muted: #5b6884;
+  --bg-danger: #b03a2e;
+  --bg-success: #2e7d32;
+  --bg-warning: #b08d3e;
+  --bg-sidebar: #f3ecdc;
+  --font-sans: "Noto Serif SC Variable", "Noto Serif SC", "Songti SC", "STSong", serif;
+  /* 直角小圆角：雕版/信笺的硬朗感 */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 6px;
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  font-family: "Noto Serif SC Variable", "Noto Serif SC", "Songti SC", "STSong",
+    "PingFang SC", "Microsoft YaHei", serif;
+  color: #22304e;
+  /* 暖白纸底：细密噪点（纸纤维）+ 横向帘纹（稿纸线） */
+  background-color: #f3ecdc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 0 0.24 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 27px,
+      rgba(14, 28, 56, 0.022) 27px 28px
+    );
+}
+
+::selection {
+  background: #c9a227;
+  color: #0e1c38;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #c9a227;
+  outline-offset: 2px;
+}
+
+/* 纸墨细滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(14, 28, 56, 0.18);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 28, 56, 0.34);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+@layer components {
+  /* 稿纸卡：暖白卡面 + 墨线描边 + 版印式硬阴影 */
+  .paper-card {
+    @apply relative rounded-paper border border-ink/15 bg-paper-card shadow-paper;
+  }
+
+  /* 朱文印章（描边款，报头/落款用） */
+  .seal-stamp {
+    @apply flex items-center justify-center rounded-[5px] border-2 border-seal font-brush leading-tight text-seal;
+  }
+
+  /* 卷签：章节序号的蓝底白字小标 */
+  .juan-badge {
+    @apply shrink-0 rounded-[2px] bg-qiushi px-2.5 py-1 text-xs font-bold tracking-[3px] text-paper-card;
+  }
+
+  /* 笺纸输入框 */
+  .ink-input {
+    @apply w-full rounded-paper border border-ink/25 bg-paper-card px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-qiushi focus:outline-none focus:ring-1 focus:ring-qiushi/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* 墨蓝主按钮 */
+  .btn-ink-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-paper bg-qiushi px-4 py-2 text-sm font-semibold tracking-wide text-paper-card shadow-seal transition hover:bg-qiushi-dark disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* 纸面描边按钮 */
+  .btn-ink-outline {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-paper border border-ink/25 bg-paper-card px-4 py-2 text-sm font-semibold text-ink transition hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* 朱红危险按钮 */
+  .btn-ink-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-paper border border-seal/40 bg-seal/5 px-4 py-2 text-sm font-semibold text-seal transition hover:bg-seal hover:text-paper-card disabled:cursor-not-allowed disabled:opacity-50;
+  }
 }

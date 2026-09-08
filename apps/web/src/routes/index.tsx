@@ -13,7 +13,15 @@ const ClassroomPage = lazy(() => import("../pages/Classroom.js").then((m) => ({ 
 const SettingsPage = lazy(() => import("../pages/Settings.js").then((m) => ({ default: m.SettingsPage })));
 
 function withSuspense(element: React.ReactNode) {
-  return <Suspense fallback={<div className="p-6 text-slate-500">加载中…</div>}>{element}</Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6 text-sm tracking-[3px] text-ink-faint">加载中…</div>
+      }
+    >
+      {element}
+    </Suspense>
+  );
 }
 
 function ChatRedirect() {

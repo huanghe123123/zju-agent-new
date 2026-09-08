@@ -19,13 +19,9 @@ import {
 import { semesterDisplayName } from "../utils/timetable.js";
 import type { Course, Semester } from "@zju-agent/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCalendarDays,
-  faFileExcel,
-  faImage,
-  faLightbulb,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { KoboyoIcon, type IconName } from "../components/ui/KoboyoIcon.js";
+import { PageHead, PaperCard, PaperEmpty } from "../components/ui/Paper.js";
 
 /** 学在浙大学期名 → 教务网 xnxq01id */
 function semesterToXnxq01id(name: string): string | null {
@@ -125,24 +121,24 @@ export function CoursesPage() {
         />
       }
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-zju-primary">课程</h1>
-      </div>
+      <PageHead title="课程表" sub="当学期课表与学在浙大课程资料" />
 
       {!xnxq01id ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-          未识别到任何学期，请先在学在浙大确认已选课。
-        </div>
+        <PaperCard className="border-dashed">
+          <PaperEmpty
+            icon="calendar-grid"
+            title="未识别到任何学期"
+            description="请先在学在浙大确认已选课。"
+          />
+        </PaperCard>
       ) : xnxq01id === "all" ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          <div className="mb-2 text-2xl text-slate-400">
-            <FontAwesomeIcon icon={faCalendarDays} />
-          </div>
-          <div className="mb-1 font-semibold text-slate-700">已切换为「全部学期」总览</div>
-          <div className="mx-auto max-w-md text-xs text-slate-400">
-            右侧总览已展示全部历史课程。课表按单学期排列，请在右侧选择具体学期查看当学期课程表。
-          </div>
-        </div>
+        <PaperCard className="border-dashed">
+          <PaperEmpty
+            icon="calendar-days"
+            title="已切换为「全部学期」总览"
+            description="右侧总览已展示全部历史课程。课表按单学期排列，请在右侧选择具体学期查看当学期课程表。"
+          />
+        </PaperCard>
       ) : (
         <TimetablePanel xnxq01id={xnxq01id} />
       )}
@@ -184,12 +180,12 @@ function CoursesRightPanel({
   onSelectCourse: (id: string) => void;
 }) {
   return (
-    <RightPanel title="学期总览">
+    <RightPanel title="学期总览" icon="scroll">
       {/* 学期切换 */}
-      <div className="mb-3">
-        <div className="mb-1 flex items-center justify-between">
-          <label className="text-xs font-medium text-slate-500">学期</label>
-          <span className="text-[11px] text-slate-400">
+      <div className="mb-4">
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="text-xs font-bold tracking-[2px] text-ink-soft">学期</label>
+          <span className="font-mono text-[11px] text-ink-faint">
             {xnxq01id === "all"
               ? (isLoading ? "" : `全部课程 ${totalCourses} 门`)
               : (timetableLoading ? "" : `本学期 ${timetableCourseCount > 0 ? timetableCourseCount : totalCourses} 门`)}
@@ -199,7 +195,7 @@ function CoursesRightPanel({
           value={selectedSem ?? xnxq01id ?? ""}
           onChange={(e) => onSemesterChange(e.target.value || undefined)}
           disabled={semesters.length === 0}
-          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-zju-primary focus:outline-none disabled:opacity-50"
+          className="ink-input"
         >
           {semesters.length === 0 && <option value="">（暂无学期）</option>}
           {semesters.map((s) => {
@@ -216,31 +212,33 @@ function CoursesRightPanel({
 
       {/* 课程列表 */}
       {errorMessage ? (
-        <div className="text-xs text-rose-500">加载失败：{errorMessage}</div>
+        <div className="text-xs text-seal">加载失败：{errorMessage}</div>
       ) : isLoading ? (
-        <div className="text-xs text-slate-400">加载中…</div>
+        <div className="text-xs tracking-widest text-ink-faint">加载中…</div>
       ) : grouped.length === 0 ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-400">
+        <div className="rounded-paper border border-dashed border-ink/20 bg-paper-deep/40 p-4 text-center text-xs tracking-wide text-ink-faint">
           该学期暂无学在浙大课程
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {grouped.map((g) => (
             <div key={g.semesterId}>
-              <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold tracking-[2px] text-ink-soft">
                 <span>{g.semesterName}</span>
-                <span className="text-[10px] text-slate-400">{g.courses.length} 门</span>
+                <span className="font-mono text-[10px] font-normal text-ink-faint">
+                  {g.courses.length} 门
+                </span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {g.courses.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => onSelectCourse(c.id)}
-                    className="w-full rounded-md border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-left transition hover:border-zju-primary hover:bg-white"
+                    className="w-full rounded-paper border border-ink/10 bg-paper-deep/40 px-2.5 py-2 text-left transition hover:border-qiushi hover:bg-paper-card hover:shadow-seal"
                   >
-                    <div className="truncate text-xs font-medium text-slate-700">{c.name}</div>
+                    <div className="truncate text-xs font-bold text-ink">{c.name}</div>
                     {c.teachingClassName && (
-                      <div className="truncate text-[10px] text-slate-400">{c.teachingClassName}</div>
+                      <div className="truncate text-[10px] text-ink-faint">{c.teachingClassName}</div>
                     )}
                   </button>
                 ))}
@@ -248,9 +246,11 @@ function CoursesRightPanel({
             </div>
           ))}
           {xnxq01id !== "all" && timetableCourseCount > 0 && timetableCourseCount > totalCourses && (
-            <div className="rounded-md bg-slate-50 border border-slate-200/70 p-2.5 text-[11px] text-slate-500 leading-relaxed flex items-start gap-1.5">
-              <FontAwesomeIcon icon={faLightbulb} className="text-amber-500 mt-0.5 shrink-0" />
-              <span>教务网选课共 {timetableCourseCount} 门；右栏仅列出已在「学在浙大」开通课件空间的课程。</span>
+            <div className="flex items-start gap-2 rounded-paper border border-gold/40 bg-gold/10 p-2.5 text-[11px] leading-relaxed text-ink-soft">
+              <KoboyoIcon name="search-magnifier" className="mt-0.5 h-3.5 w-auto shrink-0 text-gold" />
+              <span>
+                教务网选课共 {timetableCourseCount} 门；右栏仅列出已在「学在浙大」开通课件空间的课程。
+              </span>
             </div>
           )}
         </div>
@@ -301,7 +301,7 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
     return (
       <>
         <ErrorState message={error.message} hint="教务网课表接口可能调整，正在尝试兼容解析。" />
-        <button onClick={() => refetch()} className="mt-3 text-sm text-zju-primary">
+        <button onClick={() => refetch()} className="btn-ink-outline mt-3 !px-3 !py-1.5 text-xs">
           重试
         </button>
       </>
@@ -311,38 +311,33 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-4">
         {exportError && (
-          <span className="mr-auto text-xs text-rose-500">{exportError}</span>
+          <span className="mr-auto text-xs text-seal">{exportError}</span>
         )}
-        <button
+        <ToolButton
+          icon="screen"
           onClick={handleExportImage}
           disabled={exporting !== null || entries.length === 0}
-          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
-        >
-          <FontAwesomeIcon icon={faImage} className="mr-1 text-xs" />
-          {exporting === "image" ? "生成中…" : "导出图片"}
-        </button>
-        <button
+          label={exporting === "image" ? "生成中…" : "导出图片"}
+        />
+        <ToolButton
+          icon="area-chart"
           onClick={handleExportExcel}
           disabled={exporting !== null || entries.length === 0}
-          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
-        >
-          <FontAwesomeIcon icon={faFileExcel} className="mr-1 text-xs" />
-          {exporting === "excel" ? "生成中…" : "导出 Excel"}
-        </button>
-        <button
+          label={exporting === "excel" ? "生成中…" : "导出 Excel"}
+        />
+        <ToolButton
+          icon="calendar-grid"
           onClick={() => refetch()}
           disabled={isFetching}
-          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
-        >
-          {isFetching ? "刷新中…" : "刷新"}
-        </button>
+          label={isFetching ? "刷新中…" : "刷新"}
+        />
       </div>
       {entries.length === 0 ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-          该学期暂无课表数据
-        </div>
+        <PaperCard className="border-dashed">
+          <PaperEmpty icon="calendar-grid" title="该学期暂无课表数据" />
+        </PaperCard>
       ) : (
         <>
           <TimetableGrid entries={entries} />
@@ -361,6 +356,30 @@ function TimetablePanel({ xnxq01id }: { xnxq01id: string }) {
   );
 }
 
+/** 工具栏小按钮（导出/刷新统一样式） */
+function ToolButton({
+  icon,
+  onClick,
+  disabled,
+  label,
+}: {
+  icon: IconName;
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 text-sm tracking-wide text-ink-soft transition hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <KoboyoIcon name={icon} className="h-3.5 w-auto" />
+      {label}
+    </button>
+  );
+}
+
 function CourseDetailDrawer({
   courseId,
   onClose,
@@ -373,35 +392,40 @@ function CourseDetailDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-      <div className="relative h-full w-full max-w-md overflow-auto bg-white shadow-xl">
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-          <h3 className="font-semibold text-zju-primary">课程资料</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+      <div className="absolute inset-0 bg-ink-deep/40" onClick={onClose} />
+      <div className="relative h-full w-full max-w-md overflow-auto border-l-2 border-double border-gold/40 bg-paper-card shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/15 bg-paper-deep px-5 py-3.5">
+          <h3 className="flex items-center gap-2 font-serif text-base font-black tracking-[2px] text-ink-deep">
+            <KoboyoIcon name="folders" className="h-4 w-auto text-gold" />
+            课程资料
+          </h3>
+          <button onClick={onClose} className="text-ink-faint transition hover:text-seal">
             <FontAwesomeIcon icon={faXmark} />
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-5">
           {isLoading ? (
             <Loading />
           ) : error ? (
             <ErrorState message={error.message} />
           ) : (materials ?? []).length === 0 ? (
-            <EmptyHint message="该课程暂无资料" />
+            <PaperEmpty icon="folder" title="该课程暂无资料" />
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {materials!.map((m) => (
-                <li key={m.id} className="rounded-md border border-slate-200 p-3">
-                  <div className="mb-1 text-sm font-medium text-slate-800">{m.title}</div>
+                <li key={m.id} className="rounded-paper border border-ink/15 bg-paper p-3.5 shadow-seal">
+                  <div className="mb-2 font-serif text-sm font-bold tracking-wide text-ink-deep">
+                    {m.title}
+                  </div>
                   {m.files.length === 0 ? (
-                    <div className="text-xs text-slate-400">无附件</div>
+                    <div className="text-xs text-ink-faint">无附件</div>
                   ) : (
-                    <ul className="space-y-1">
+                    <ul className="space-y-1.5">
                       {m.files.map((f) => (
                         <li key={f.id} className="flex items-center justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-xs text-slate-600">{f.name}</div>
-                            <div className="text-[10px] text-slate-400">{formatBytes(f.size)}</div>
+                            <div className="truncate text-xs text-ink">{f.name}</div>
+                            <div className="font-mono text-[10px] text-ink-faint">{formatBytes(f.size)}</div>
                           </div>
                           <button
                             onClick={() =>
@@ -414,7 +438,7 @@ function CourseDetailDrawer({
                               })
                             }
                             disabled={download.isPending}
-                            className="shrink-0 rounded bg-zju-primary px-2 py-1 text-[11px] text-white hover:bg-zju-light disabled:opacity-50"
+                            className="shrink-0 rounded-paper bg-qiushi px-2.5 py-1 text-[11px] font-bold tracking-wider text-paper-card shadow-seal transition hover:bg-qiushi-dark disabled:opacity-50"
                           >
                             下载
                           </button>
@@ -427,13 +451,13 @@ function CourseDetailDrawer({
             </ul>
           )}
           {download.isPending && (
-            <div className="mt-3 text-xs text-slate-400">下载中…</div>
+            <div className="mt-3 text-xs tracking-wide text-ink-faint">下载中…</div>
           )}
           {download.isError && (
-            <div className="mt-3 text-xs text-rose-500">下载失败：{download.error?.message}</div>
+            <div className="mt-3 text-xs text-seal">下载失败：{download.error?.message}</div>
           )}
           {download.isSuccess && (
-            <div className="mt-3 text-xs text-emerald-600">已下载：{download.data.fileName}</div>
+            <div className="mt-3 text-xs text-bamboo">已下载：{download.data.fileName}</div>
           )}
         </div>
       </div>
@@ -460,14 +484,6 @@ function groupBySemester(
       courses: list,
     }))
     .sort((a, b) => b.semesterName.localeCompare(a.semesterName));
-}
-
-function EmptyHint({ message }: { message: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-      {message}
-    </div>
-  );
 }
 
 function isOfficeFile(name: string): boolean {

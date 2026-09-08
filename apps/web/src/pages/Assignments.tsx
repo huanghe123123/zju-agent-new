@@ -13,20 +13,9 @@ import { sanitizeHtml } from "../utils/sanitizeHtml.js";
 import type { Assignment } from "@zju-agent/core";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  Segmented,
-} from "@crisp-ui-kit/crisp";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faCircleExclamation,
-  faClock,
-  faCircleXmark,
-  faCircleCheck,
-} from "@fortawesome/free-solid-svg-icons";
+import { Segmented } from "@crisp-ui-kit/crisp";
+import { KoboyoIcon } from "../components/ui/KoboyoIcon.js";
+import { InkTag, PageHead, PaperCard, PaperEmpty } from "../components/ui/Paper.js";
 
 const DEFAULT_URGENT_HOURS = 24;
 
@@ -68,10 +57,10 @@ export function AssignmentsPage() {
   return (
     <Layout
       rightPanel={
-        <RightPanel title="分类设置">
-          <div className="space-y-3">
+        <RightPanel title="分类设置" icon="cartoon-settings">
+          <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">
+              <label className="mb-2 block text-xs font-bold tracking-[2px] text-ink-soft">
                 将截止阈值
               </label>
               <input
@@ -80,61 +69,58 @@ export function AssignmentsPage() {
                 max={72}
                 value={urgentHours}
                 onChange={(e) => setUrgentHours(Number(e.target.value))}
-                className="w-full accent-zju-primary"
+                className="w-full accent-qiushi"
               />
-              <div className="text-center text-xs text-slate-500">
+              <div className="text-center font-mono text-xs text-gold">
                 距截止 ≤ {urgentHours} 小时
               </div>
             </div>
-            <div className="space-y-1.5 rounded-md border border-slate-100 bg-slate-50 p-2 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-rose-600 flex items-center gap-1.5">
-                  <FontAwesomeIcon icon={faCircleExclamation} className="text-[11px]" />
+            <div className="space-y-2 rounded-paper border border-ink/10 bg-paper-deep/50 p-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 font-bold text-seal">
+                  <KoboyoIcon name="bell-notification" className="h-3.5 w-auto" />
                   <span>将截止</span>
                 </span>
-                <span className="font-medium">{urgent.length} 项</span>
+                <span className="font-mono">{urgent.length} 项</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-amber-600 flex items-center gap-1.5">
-                  <FontAwesomeIcon icon={faClock} className="text-[11px]" />
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 font-bold text-gold">
+                  <KoboyoIcon name="cartoon-hourglass" className="h-3.5 w-auto" />
                   <span>还不急</span>
                 </span>
-                <span className="font-medium">{relaxed.length} 项</span>
+                <span className="font-mono">{relaxed.length} 项</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <FontAwesomeIcon icon={faCircleXmark} className="text-[11px]" />
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 font-bold text-ink-faint">
+                  <KoboyoIcon name="scroll" className="h-3.5 w-auto" />
                   <span>已截止</span>
                 </span>
-                <span className="font-medium">{overdue.length} 项</span>
+                <span className="font-mono">{overdue.length} 项</span>
               </div>
-              <div className="flex justify-between items-center border-t border-slate-200 pt-1">
-                <span className="text-emerald-600 flex items-center gap-1.5">
-                  <FontAwesomeIcon icon={faCircleCheck} className="text-[11px]" />
+              <div className="flex items-center justify-between border-t border-ink/10 pt-2">
+                <span className="flex items-center gap-2 font-bold text-bamboo">
+                  <KoboyoIcon name="checklist-paper" className="h-3.5 w-auto" />
                   <span>已提交</span>
                 </span>
-                <span className="font-medium">{submitted.length} 项</span>
+                <span className="font-mono">{submitted.length} 项</span>
               </div>
             </div>
           </div>
         </RightPanel>
       }
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zju-primary">作业</h1>
-        <Button
-          intent="neutral"
-          size="sm"
-          onClick={() => refetch()}
-          loading={isFetching}
-          className="text-xs"
-        >
-          {isFetching ? "刷新中…" : "刷新"}
-        </Button>
-      </div>
+      <PageHead
+        title="待办作业"
+        sub="按截止时间四态分类，右侧可调整「将截止」阈值"
+        right={
+          <button onClick={() => refetch()} className="btn-ink-outline !px-3.5 !py-1.5 text-xs">
+            {isFetching ? "刷新中…" : "刷新"}
+          </button>
+        }
+      />
 
-      {/* 四分类 Crisp Segmented Tab */}
-      <div className="mb-4 overflow-x-auto pb-1">
+      {/* 四分类 Tab（纸墨风段选器） */}
+      <div className="mb-5 overflow-x-auto pb-1">
         <Segmented
           value={tab}
           onValueChange={(val) => {
@@ -146,44 +132,36 @@ export function AssignmentsPage() {
             {
               value: "urgent",
               label: (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 px-1 text-xs font-bold">
                   <span>将截止</span>
-                  <Badge tone="danger" size="small">
-                    {urgent.length}
-                  </Badge>
+                  <CountChip tone="danger">{urgent.length}</CountChip>
                 </span>
               ),
             },
             {
               value: "relaxed",
               label: (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 px-1 text-xs font-bold">
                   <span>还不急</span>
-                  <Badge tone="warning" size="small">
-                    {relaxed.length}
-                  </Badge>
+                  <CountChip tone="warn">{relaxed.length}</CountChip>
                 </span>
               ),
             },
             {
               value: "overdue",
               label: (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 px-1 text-xs font-bold">
                   <span>已截止</span>
-                  <Badge tone="neutral" size="small">
-                    {overdue.length}
-                  </Badge>
+                  <CountChip tone="plain">{overdue.length}</CountChip>
                 </span>
               ),
             },
             {
               value: "submitted",
               label: (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 px-1 text-xs font-bold">
                   <span>已提交</span>
-                  <Badge tone="success" size="small">
-                    {submitted.length}
-                  </Badge>
+                  <CountChip tone="live">{submitted.length}</CountChip>
                 </span>
               ),
             },
@@ -196,10 +174,9 @@ export function AssignmentsPage() {
       ) : isLoading ? (
         <Loading />
       ) : list.length === 0 ? (
-        <Card raised className="p-8 text-center">
-          <EmptyState
-            variant="default"
-            icon={<FontAwesomeIcon icon={faCircleCheck} className="text-3xl text-emerald-500" />}
+        <PaperCard>
+          <PaperEmpty
+            icon="checklist-paper"
             title={
               tab === "urgent"
                 ? "暂无紧急作业"
@@ -211,9 +188,9 @@ export function AssignmentsPage() {
             }
             description="当前分类下没有相关作业记录。"
           />
-        </Card>
+        </PaperCard>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {list.map((a) => (
             <AssignmentItem key={`${a.courseId}-${a.id}`} assignment={a} />
           ))}
@@ -224,45 +201,66 @@ export function AssignmentsPage() {
   );
 }
 
+/** Tab 计数小签 */
+function CountChip({
+  tone,
+  children,
+}: {
+  tone: "danger" | "warn" | "plain" | "live";
+  children: React.ReactNode;
+}) {
+  const cls = {
+    danger: "bg-seal/15 text-seal",
+    warn: "bg-gold/20 text-gold",
+    plain: "bg-ink/10 text-ink-soft",
+    live: "bg-bamboo/15 text-bamboo",
+  }[tone];
+  return (
+    <span className={`rounded-paper px-1.5 font-mono text-[10px] font-bold ${cls}`}>
+      {children}
+    </span>
+  );
+}
+
 function AssignmentItem({ assignment }: { assignment: Assignment }) {
   const urgency = deadlineUrgency(assignment.deadline);
   return (
-    <Card raised interactive className="p-4 transition-all duration-150">
-      <div className="flex items-start justify-between gap-2">
+    <PaperCard interactive className="p-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">{assignment.title}</div>
-          <div className="mt-0.5 text-xs text-slate-500">{assignment.courseName}</div>
+          <div className="truncate font-serif text-[15px] font-bold tracking-wide text-ink-deep">
+            {assignment.title}
+          </div>
+          <div className="mt-1 text-xs tracking-wide text-ink-soft">{assignment.courseName}</div>
         </div>
         {assignment.submitted ? (
-          <Badge tone="success" size="small">
-            已提交
-          </Badge>
+          <InkTag tone="live">已提交</InkTag>
         ) : urgency !== "none" ? (
-          <Badge
-            tone={urgency === "overdue" ? "danger" : urgency === "urgent" ? "warning" : "neutral"}
+          <InkTag
+            tone={urgency === "overdue" ? "danger" : urgency === "urgent" ? "warn" : "plain"}
             dot={urgency === "urgent"}
-            size="small"
           >
             {urgency === "overdue" ? "已逾期" : urgency === "urgent" ? "即将截止" : "还不急"}
-          </Badge>
+          </InkTag>
         ) : null}
       </div>
-      <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-        <span>截止：{formatDateTime(assignment.deadline)}</span>
+      <div className="mt-2.5 flex items-center gap-3 text-xs text-ink-soft">
+        <span className="inline-flex items-center gap-1.5">
+          <KoboyoIcon name="cartoon-hourglass" className="h-3 w-auto text-gold" />
+          截止：<span className="font-mono">{formatDateTime(assignment.deadline)}</span>
+        </span>
         {assignment.attachments.length > 0 && (
-          <Badge tone="neutral" size="small">
-            附件 {assignment.attachments.length}
-          </Badge>
+          <InkTag tone="plain">附件 {assignment.attachments.length}</InkTag>
         )}
       </div>
       {assignment.description && (
         <div
-          className="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-600 [&_p]:mb-1"
+          className="mt-3 border-t border-dashed border-ink/15 pt-2.5 text-xs leading-relaxed text-ink [&_p]:mb-1"
           // 作业描述来自学在浙大富文本，必须经白名单消毒后再注入，防存储型 XSS
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(assignment.description) }}
         />
       )}
-    </Card>
+    </PaperCard>
   );
 }
 
@@ -279,4 +277,3 @@ export function CourseAssignmentsPanel({ courseId }: { courseId: string }) {
     </ul>
   );
 }
-

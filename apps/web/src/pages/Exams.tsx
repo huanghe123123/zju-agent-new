@@ -9,7 +9,8 @@ import { formatDateTime } from "../utils/format.js";
 import { parseExamTimestamp } from "../utils/format.js";
 import type { Exam, Semester } from "@zju-agent/core";
 import { useMemo, useState } from "react";
-import { Badge, Button, Card } from "@crisp-ui-kit/crisp";
+import { KoboyoIcon } from "../components/ui/KoboyoIcon.js";
+import { InkTag, PageHead, PaperCard, PaperEmpty } from "../components/ui/Paper.js";
 
 /** 学在浙大学期名 → 教务网 xnxq01id */
 function semesterToXnxq01id(name: string): string | null {
@@ -62,12 +63,12 @@ export function ExamsPage() {
   return (
     <Layout
       rightPanel={
-        <RightPanel title="学期切换">
+        <RightPanel title="学期切换" icon="calendar-days">
           <select
             value={xnxq01id ?? ""}
             onChange={(e) => setSelected(e.target.value || undefined)}
             disabled={semesters.length === 0}
-            className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-zju-primary focus:outline-none disabled:opacity-50"
+            className="ink-input"
           >
             {semesters.length === 0 && <option value="">（暂无学期）</option>}
             {semesters.map((s) => {
@@ -79,21 +80,26 @@ export function ExamsPage() {
               );
             })}
           </select>
-          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-            <p className="font-medium mb-1">提醒规则（默认）</p>
+          <div className="mt-4 rounded-paper border border-gold/40 bg-gold/10 p-3.5 text-xs leading-relaxed text-ink-soft">
+            <p className="mb-1.5 flex items-center gap-1.5 font-bold tracking-wide text-gold">
+              <KoboyoIcon name="bell-notification" className="h-3.5 w-auto" />
+              提醒规则（默认）
+            </p>
             <p>考试前 1 天、2 小时、30 分钟各提醒一次。可在设置中调整。</p>
           </div>
         </RightPanel>
       }
     >
-      <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h1 className="text-2xl font-bold text-zju-primary">考试安排</h1>
-      </div>
+      <PageHead title="考试安排" sub="待考科目、考场与座位号" />
 
       {!xnxq01id ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-          未识别到任何学期，请先在学在浙大确认已选课。
-        </div>
+        <PaperCard className="border-dashed">
+          <PaperEmpty
+            icon="exam-paper"
+            title="未识别到任何学期"
+            description="请先在学在浙大确认已选课。"
+          />
+        </PaperCard>
       ) : (
         <ExamsPanel xnxq01id={xnxq01id} />
       )}
@@ -126,7 +132,7 @@ function ExamsPanel({ xnxq01id }: { xnxq01id: string }) {
     return (
       <>
         <ErrorState message={error.message} hint="请确认 ZJU 账号已验证，且教务网可访问。" />
-        <button onClick={() => refetch()} className="mt-3 text-sm text-zju-primary">
+        <button onClick={() => refetch()} className="btn-ink-outline mt-3 !px-3.5 !py-1.5 text-xs">
           重试
         </button>
       </>
@@ -135,46 +141,51 @@ function ExamsPanel({ xnxq01id }: { xnxq01id: string }) {
   if (isLoading) return <Loading />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div className="flex justify-end">
-        <Button
-          intent="neutral"
-          size="sm"
+        <button
           onClick={() => refetch()}
-          loading={isFetching}
-          className="text-xs"
+          disabled={isFetching}
+          className="btn-ink-outline !px-3.5 !py-1.5 text-xs"
         >
           {isFetching ? "刷新中…" : "刷新"}
-        </Button>
+        </button>
       </div>
 
-      <Section title="待考科目" exams={upcoming} emptyText="本学期暂无待考科目安排" />
-      <Section title="已结束" exams={past} emptyText="无已结束的考试" />
-      <Section title="待安排时间" exams={noTime} emptyText="无待安排的考试" />
+      <Section juan="壹" title="待考科目" exams={upcoming} emptyText="本学期暂无待考科目安排" />
+      <Section juan="贰" title="已结束" exams={past} emptyText="无已结束的考试" />
+      <Section juan="叁" title="待安排时间" exams={noTime} emptyText="无待安排的考试" />
     </div>
   );
 }
 
 function Section({
+  juan,
   title,
   exams,
   emptyText,
 }: {
+  juan: string;
   title: string;
   exams: Exam[];
   emptyText: string;
 }) {
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">
-        {title}（{exams.length}）
+      <h2 className="mb-3 flex items-center gap-2.5">
+        <span className="juan-badge !px-2 !py-0.5 !text-[11px]">{juan}</span>
+        <span className="font-serif text-base font-black tracking-[2px] text-ink-deep">
+          {title}
+        </span>
+        <span className="font-mono text-xs text-ink-faint">({exams.length})</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-ink/15 to-transparent" />
       </h2>
       {exams.length === 0 ? (
         emptyText ? (
-          <div className="text-xs text-slate-400">{emptyText}</div>
+          <div className="px-1 text-xs tracking-wide text-ink-faint">{emptyText}</div>
         ) : null
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {exams.map((e) => (
             <ExamItem key={e.id} exam={e} />
           ))}
@@ -190,18 +201,10 @@ function ExamItem({ exam }: { exam: Exam }) {
 
   const badge = (() => {
     if (Number.isNaN(ts)) {
-      return (
-        <Badge tone="neutral" size="small">
-          时间待定
-        </Badge>
-      );
+      return <InkTag tone="plain">时间待定</InkTag>;
     }
     if (ts < now) {
-      return (
-        <Badge tone="neutral" size="small">
-          已结束
-        </Badge>
-      );
+      return <InkTag tone="plain">已结束</InkTag>;
     }
 
     const diffMs = ts - now;
@@ -210,50 +213,44 @@ function ExamItem({ exam }: { exam: Exam }) {
 
     if (diffHours <= 24) {
       return (
-        <Badge tone="danger" dot size="small">
+        <InkTag tone="danger" dot>
           即将开考 · 仅剩 {Math.max(1, diffHours)} 小时
-        </Badge>
+        </InkTag>
       );
     }
     if (diffDays <= 7) {
-      return (
-        <Badge tone="warning" size="small">
-          近期待考 · 距今 {diffDays} 天
-        </Badge>
-      );
+      return <InkTag tone="warn">近期待考 · 距今 {diffDays} 天</InkTag>;
     }
-    return (
-      <Badge tone="neutral" size="small">
-        待考 · 距今 {diffDays} 天
-      </Badge>
-    );
+    return <InkTag tone="next">待考 · 距今 {diffDays} 天</InkTag>;
   })();
 
   return (
-    <Card raised interactive className="p-4 transition-all duration-150">
-      <div className="flex items-start justify-between gap-2">
+    <PaperCard interactive className="p-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">{exam.courseName}</div>
-          <div className="mt-0.5 text-xs text-slate-500">
-            {exam.semester ? `学期 ${exam.semester}` : ""}
+          <div className="truncate font-serif text-[15px] font-bold tracking-wide text-ink-deep">
+            {exam.courseName}
           </div>
+          {exam.semester && (
+            <div className="mt-1 text-xs tracking-wide text-ink-soft">学期 {exam.semester}</div>
+          )}
         </div>
         {badge}
       </div>
-      <div className="mt-2.5 grid grid-cols-3 gap-2 text-xs text-slate-600 bg-slate-50/70 p-2.5 rounded-lg border border-slate-100">
+      <div className="mt-3 grid grid-cols-1 gap-2 rounded-paper border border-ink/10 bg-paper-deep/50 p-3 text-xs sm:grid-cols-3">
         <div>
-          <div className="text-slate-400 mb-0.5">考试时间</div>
-          <div className="font-medium text-slate-800">{formatDateTime(exam.time)}</div>
+          <div className="mb-1 text-[10px] tracking-[2px] text-ink-faint">考试时间</div>
+          <div className="font-mono font-bold text-ink">{formatDateTime(exam.time)}</div>
         </div>
         <div>
-          <div className="text-slate-400 mb-0.5">地点</div>
-          <div className="truncate font-medium text-slate-800">{exam.location || "待公布"}</div>
+          <div className="mb-1 text-[10px] tracking-[2px] text-ink-faint">地点</div>
+          <div className="truncate font-bold text-ink">{exam.location || "待公布"}</div>
         </div>
         <div>
-          <div className="text-slate-400 mb-0.5">座位</div>
-          <div className="font-medium text-slate-800">{exam.seat || "待公布"}</div>
+          <div className="mb-1 text-[10px] tracking-[2px] text-ink-faint">座位</div>
+          <div className="font-mono font-bold text-ink">{exam.seat || "待公布"}</div>
         </div>
       </div>
-    </Card>
+    </PaperCard>
   );
 }

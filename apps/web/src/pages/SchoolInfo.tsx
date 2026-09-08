@@ -13,9 +13,10 @@ import { Segmented } from "@crisp-ui-kit/crisp";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faRotate,
-  faTriangleExclamation,
   faUpRightFromSquare,
 } from "@fortawesome/free-solid-svg-icons";
+import { KoboyoIcon } from "../components/ui/KoboyoIcon.js";
+import { PageHead, PaperCard, PaperEmpty } from "../components/ui/Paper.js";
 
 type SourceFilter = "all" | NoticeSource;
 
@@ -25,10 +26,10 @@ const SOURCE_FILTERS: { value: SourceFilter; label: string }[] = [
   { value: "zdbk", label: "教务系统" },
 ];
 
-/** 来源徽标配色：素拓绿 / 教务红（对齐源站观感） */
+/** 来源徽标配色：素拓竹青 / 教务朱红（对齐源站观感，融入纸墨色系） */
 const SOURCE_BADGE: Record<NoticeSource, string> = {
-  sztz: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  zdbk: "bg-rose-50 text-rose-700 border-rose-200",
+  sztz: "border-bamboo/40 bg-bamboo/10 text-bamboo",
+  zdbk: "border-seal/40 bg-seal/10 text-seal",
 };
 
 export function SchoolInfoPage() {
@@ -44,21 +45,19 @@ export function SchoolInfoPage() {
 
   return (
     <Layout>
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-zju-primary">学校信息</h1>
-        <p className="mt-0.5 text-xs text-slate-400">
-          素质拓展平台与教务系统的最新通知公告，点击条目在浏览器打开原文
-        </p>
-      </div>
+      <PageHead
+        title="学校信息"
+        sub="素质拓展平台与教务系统的最新通知公告，点击条目在浏览器打开原文"
+      />
 
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <Segmented
           value={source}
           onValueChange={(val) => setSource(val as SourceFilter)}
           options={SOURCE_FILTERS.map((f) => ({
             value: f.value,
             label: (
-              <span className="inline-flex items-center px-1 text-xs font-semibold">
+              <span className="inline-flex items-center px-1 text-xs font-bold tracking-wide">
                 {f.label}
               </span>
             ),
@@ -67,19 +66,19 @@ export function SchoolInfoPage() {
         <button
           onClick={() => setRefreshSeq((v) => v + 1)}
           disabled={isFetching}
-          className="text-sm text-slate-500 hover:text-zju-primary disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-sm tracking-wide text-ink-soft transition hover:text-gold disabled:opacity-50"
         >
           <FontAwesomeIcon
             icon={faRotate}
-            className={`mr-1 text-xs ${isFetching ? "animate-spin" : ""}`}
+            className={`text-xs ${isFetching ? "animate-spin" : ""}`}
           />
           {isFetching ? "刷新中…" : "刷新"}
         </button>
       </div>
 
       {failures.length > 0 && (
-        <div className="mb-3 flex items-start gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          <FontAwesomeIcon icon={faTriangleExclamation} className="mt-0.5 shrink-0" />
+        <div className="mb-4 flex items-start gap-2 rounded-paper border border-gold/45 bg-gold/10 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
+          <KoboyoIcon name="bell-notification" className="mt-0.5 h-3.5 w-auto shrink-0 text-gold" />
           <span>{failures.join("；")}</span>
         </div>
       )}
@@ -92,11 +91,11 @@ export function SchoolInfoPage() {
       ) : isLoading ? (
         <Loading />
       ) : filtered.length === 0 ? (
-        <div className="rounded-md border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
-          暂无通知
-        </div>
+        <PaperCard className="border-dashed">
+          <PaperEmpty icon="announcement-horn" title="暂无通知" />
+        </PaperCard>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {filtered.map((n) => (
             <NoticeRow key={n.id} notice={n} />
           ))}
@@ -112,38 +111,38 @@ function NoticeRow({ notice }: { notice: Notice }) {
     <li>
       <button
         onClick={open}
-        className="w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-left transition hover:border-zju-primary/60 hover:shadow-sm"
+        className="paper-card group w-full px-4 py-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-qiushi/50 hover:shadow-paper-hover"
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {notice.important && (
-                <span className="shrink-0 rounded bg-rose-500 px-1 py-0.5 text-[10px] font-semibold text-white">
+                <span className="shrink-0 rounded-paper bg-seal px-1.5 py-0.5 text-[10px] font-bold tracking-widest text-paper-card">
                   置顶
                 </span>
               )}
               <span
-                className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${SOURCE_BADGE[notice.source]}`}
+                className={`shrink-0 rounded-paper border px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${SOURCE_BADGE[notice.source]}`}
               >
                 {notice.sourceName}
               </span>
-              <span className="truncate text-sm font-medium text-slate-800">
+              <span className="truncate font-serif text-sm font-bold tracking-wide text-ink-deep transition-colors group-hover:text-qiushi">
                 {notice.title}
               </span>
             </div>
             {notice.summary && (
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
+              <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-ink-soft">
                 {notice.summary}
               </p>
             )}
-            <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-slate-400">
+            <div className="mt-2 flex items-center gap-3 font-mono text-[11px] text-ink-faint">
               {notice.date && <span>{notice.date}</span>}
-              {notice.publisher && <span>{notice.publisher}</span>}
+              {notice.publisher && <span className="font-sans">{notice.publisher}</span>}
             </div>
           </div>
           <FontAwesomeIcon
             icon={faUpRightFromSquare}
-            className="mt-1 shrink-0 text-xs text-slate-300"
+            className="mt-1 shrink-0 text-xs text-ink-faint transition-colors group-hover:text-gold"
           />
         </div>
       </button>

@@ -1,6 +1,4 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 type Props = { children: ReactNode };
 type State = { hasError: boolean; error: Error | null; info: ErrorInfo | null };
@@ -27,25 +25,24 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       const err = this.state.error;
       return (
-        <div className="m-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm">
-          <div className="mb-2 font-semibold text-rose-700 flex items-center gap-1.5">
-            <FontAwesomeIcon icon={faTriangleExclamation} />
+        <div className="m-4 rounded-paper border border-[#b03a2e]/40 bg-[#b03a2e]/10 p-4 text-sm">
+          <div className="mb-2 flex items-center gap-1.5 font-serif font-black tracking-[2px] text-[#b03a2e]">
             页面渲染出错
           </div>
-          <div className="mb-2 text-rose-600">{err?.message ?? String(err)}</div>
+          <div className="mb-2 text-[#22304e]">{err?.message ?? String(err)}</div>
           {err?.stack && (
-            <pre className="max-h-60 overflow-auto rounded bg-white/70 p-2 text-[11px] text-slate-600">
+            <pre className="max-h-60 overflow-auto rounded-paper bg-[#fdfaf2]/80 p-2 font-mono text-[11px] text-[#5b6884]">
               {err.stack}
             </pre>
           )}
           {this.state.info?.componentStack && (
-            <pre className="mt-2 max-h-40 overflow-auto rounded bg-white/70 p-2 text-[11px] text-slate-500">
+            <pre className="mt-2 max-h-40 overflow-auto rounded-paper bg-[#fdfaf2]/80 p-2 font-mono text-[11px] text-[#8b93a7]">
               {this.state.info.componentStack}
             </pre>
           )}
           <button
             onClick={() => this.setState({ hasError: false, error: null, info: null })}
-            className="mt-3 rounded bg-zju-primary px-3 py-1.5 text-xs text-white hover:bg-zju-light"
+            className="mt-3 rounded-paper bg-[#003f88] px-3 py-1.5 text-xs font-bold tracking-wider text-[#fdfaf2] transition hover:bg-[#12233f]"
           >
             重试
           </button>
