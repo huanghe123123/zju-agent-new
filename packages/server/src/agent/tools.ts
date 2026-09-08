@@ -23,6 +23,7 @@ import type {
 import type { ServicesContainer } from "../services.js";
 import type { ServerConfig } from "../config/env.js";
 import { logger } from "../config/logger.js";
+import { readGuideDoc, searchGuide } from "../knowledge/index.js";
 import { NOTICES_CACHE_KEY, NOTICES_CACHE_TTL_MS } from "../routes/notices.js";
 
 export type ToolDeps = ServicesContainer & { config: ServerConfig };
@@ -46,6 +47,8 @@ export function buildTools(deps: ToolDeps): AgentTool[] {
     makeGetTimetable(deps),
     makeGetGrades(deps),
     makeGetNotices(deps),
+    makeSearchGuide(),
+    makeReadGuide(),
     makeDownloadCourseMaterial(deps),
     makeBatchDownload(deps),
   ];
@@ -518,8 +521,90 @@ function makeGetGrades(deps: ToolDeps): AgentTool {
   };
 }
 
-// ---------- 操作类工具（高风险，需确认） ----------
+// ---------- 校园常识知识库（只读，无需登录） ----------
 
+/** 知识库出处与免责说明，随检索结果一起回喂给模型 */
+const GUIDE_SOURCE_NOTE =
+  "内容摘自 CC98《浙江大学本科新生指引》（非官方，仅供参考；政策类信息以学校官方最新通知为准）";
+
+function makeSearchGuide(): AgentTool {
+  return {
+    name: "zju_search_guide",
+    description:
+      "检索浙大校园常识知识库（CC98《浙江大学本科新生指引》，非官方）。涵盖选课规则与抽签机制、课程考核与绩点、奖助学金与荣誉称号、专业确认与转专业、培养方案与辅修、宿舍园区、校园网与校园卡、图书馆、就医医保、快递、军训、社团、常用网站等制度与生活常识。用户问这类「浙大怎么规定/怎么办」的问题时先调本工具，再依据返回的原文回答。查个人实时数据（课程/作业/考试/课表/成绩）用 zju_get_* 系列工具，不要用本工具。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "检索关键词或用户问题，如「绩点怎么算」「选课抽签规则」「医保怎么报销」。",
+        },
+        limit: {
+          type: "number",
+          description: "可选，返回片段条数上限，默认 4，最大 6。",
+        },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    riskLevel: "read",
+    requiresConfirmation: false,
+    async execute(input, ctx): Promise<ToolResult> {
+      return runRead(ctx, async () => {
+        const q = (input ?? {}) as { query?: string; limit?: number };
+        const query = q.query?.trim() ?? "";
+        if (!query) {
+          return { results: [], hint: "缺少 query 参数。" };
+        }
+        const limit =
+          typeof q.limit === "number" && q.limit > 0
+            ? Math.min(Math.floor(q.limit), 6)
+            : 4;
+        const results = searchGuide(query, limit);
+        if (results.length === 0) {
+          return {
+            results: [],
+            hint: "知识库中没有找到相关内容。请如实告知用户指引里没有，不要编造浙大规定；可以换更短的关键词再试一次。",
+          };
+        }
+        return { results, source: GUIDE_SOURCE_NOTE };
+      });
+    },
+  };
+}
+
+function makeReadGuide(): AgentTool {
+  return {
+    name: "zju_read_guide",
+    description:
+      "读取知识库中某篇文档的全文。先用 zju_search_guide 检索；当返回的片段被截断、或需要完整上下文（例如整章选课规则）时，用本工具按 doc 路径读取全文（超长会再次截断）。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        doc: {
+          type: "string",
+          description:
+            "文档路径，如 \"course_sys/rules.md\"，取自 zju_search_guide 结果里的 doc 字段。",
+        },
+      },
+      required: ["doc"],
+      additionalProperties: false,
+    },
+    riskLevel: "read",
+    requiresConfirmation: false,
+    async execute(input, ctx): Promise<ToolResult> {
+      return runRead(ctx, async () => {
+        const q = (input ?? {}) as { doc?: string };
+        const doc = q.doc?.trim() ?? "";
+        if (!doc) return { hint: "缺少 doc 参数。" };
+        return readGuideDoc(doc);
+      });
+    },
+  };
+}
+
+// ---------- 操作类工具（高风险，需确认） ----------
 /**
  * 下载课程资料。
  * 风险等级 external_download；单文件下载默认不需确认（见 settings.confirmSingleDownload），

@@ -38,6 +38,25 @@ describe("buildSystemPrompt", () => {
     expect(brief).toContain("60 字以内");
     expect(buildSystemPrompt(BASE)).not.toContain("60 字以内");
   });
+
+  it("提供知识库大纲时注入检索规则与目录，且不残留占位符", () => {
+    const prompt = buildSystemPrompt({
+      ...BASE,
+      guideOutline: "- 选课：选课规则、选课技巧",
+    });
+    expect(prompt).toContain("关于浙大校园常识（知识库）");
+    expect(prompt).toContain("zju_search_guide");
+    expect(prompt).toContain("参考《浙江大学本科新生指引》");
+    expect(prompt).toContain("- 选课：选课规则、选课技巧");
+    expect(prompt).not.toContain("__GUIDE_OUTLINE__");
+  });
+
+  it("知识库不可用（大纲为空）时整段省略", () => {
+    expect(buildSystemPrompt(BASE)).not.toContain("关于浙大校园常识");
+    expect(buildSystemPrompt({ ...BASE, guideOutline: "  " })).not.toContain(
+      "关于浙大校园常识",
+    );
+  });
 });
 
 describe("filterToolsForMode", () => {

@@ -14,6 +14,9 @@ files:
 extraResources:
   - from: dist/server
     to: server
+  # 校园常识知识库（markdown），服务端从 resources/server/knowledge 读取
+  - from: ../../packages/server/knowledge
+    to: server/knowledge
 
 asar: true
 asarUnpack:

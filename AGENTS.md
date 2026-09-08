@@ -1,6 +1,6 @@
 # AGENTS.md — 项目导航文档（供 AI 助手快速理解本仓库）
 
-> 本文档面向后续被调用的 AI 编码助手，目标是不经探索即可理解项目全貌。内容基于 2026-09-08 的代码状态（含当日第二轮修复后的更新）。
+> 本文档面向后续被调用的 AI 编码助手，目标是不经探索即可理解项目全貌。内容基于 2026-09-08 的代码状态（含当日第四轮更新：校园常识知识库）。
 > 同目录的 `CLAUDE.md` 是更早的约定文档，其核心内容仍然有效并已并入本文（wrap() 双层信封、fileId 陷阱等实战踩坑记录）。
 
 ## 1. 项目是什么
@@ -29,7 +29,7 @@ pnpm --filter @zju-agent/web build     # 单包构建（filter 用包名）
 - Windows 用户可直接双击根目录 **`start-dev.bat`** 一键启动：环境检查 → 装依赖 → 由 `scripts/dev-launcher.mjs` 把前后端**后台隐藏托管**（日志写 `.run/server.log`、`.run/web.log`）+ 拉起系统托盘 + 桌面挂件 → 服务就绪后自动打开浏览器。**不再弹出两个终端窗口**；双击 **`stop-dev.bat`**（或托盘菜单「退出」）停止服务。托盘菜单：打开主界面 / 显示·隐藏挂件 / 打开日志目录 / 重启服务 / 退出。
 - `start-dev.bat` / `stop-dev.bat` 都是 **GBK 编码 + CRLF**（cmd 中文必需），勿用编辑器另存为 UTF-8。
 - `pnpm dev` 会并行跑所有包的 dev，一般不需要；日常用上面两条 dev 命令或 bat。
-- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 7 个套件 58 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`（从 `utils/timetable.ts` 导入）、`apps/web/src/__tests__/timetablePeriods.test.ts`（1-13 节作息时间/节次标签）、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）、`packages/zju-services/src/notices/index.test.ts`（通知解析/日期转换，样本来自抓包项目 fixtures）、`packages/server/src/agent/prompt.test.ts`（系统提示词拼装 + 只读工具过滤）、`packages/llm/src/adapters/openai.test.ts`（joinUrl 版本段处理）。新增纯函数时应配套 `*.test.ts`。
+- **测试已接入**（vitest 2.1.9，根 `vitest.config.ts` 收集 `packages/*/src/**/*.test.ts` 与 `apps/*/src/**/*.test.{ts,tsx}`）。现有 8 个套件 74 例：`packages/core/src/domain/zdbk.test.ts`（mergeTimetableEntries）、`apps/web/src/__tests__/compressWeeks.test.ts`（从 `utils/timetable.ts` 导入）、`apps/web/src/__tests__/timetablePeriods.test.ts`（1-13 节作息时间/节次标签）、`packages/server/src/auth/credentials.test.ts`（加密往返/v2 格式）、`packages/zju-services/src/notices/index.test.ts`（通知解析/日期转换，样本来自抓包项目 fixtures）、`packages/server/src/agent/prompt.test.ts`（系统提示词拼装 + 只读工具过滤 + 知识库提示块）、`packages/llm/src/adapters/openai.test.ts`（joinUrl 版本段处理）、`packages/server/src/knowledge/search.test.ts`（知识库分块/分词/IDF 检索 + 真实数据冒烟）。新增纯函数时应配套 `*.test.ts`。
 - **ESLint 已接入**（eslint.config.js：typescript-eslint recommended + react-hooks + tailwindcss `no-custom-classname`，后者可拦截 v3 下不存在的类名如 `p-4.5`）。改完代码跑 `pnpm lint`。注意 `no-custom-classname` 白名单里有 `fa-fw`（FontAwesome）和 `input`（Settings.tsx 内联样式）两个非 Tailwind 类；`.run/**` 已在 ignores 中（开发期运行时目录）。
 - ZJU 认证 happy path 的 bug 仍需真实凭据手工端到端验证（见 §14）。
 
@@ -66,7 +66,7 @@ zju-agent-new/
 │   └── desktop/               ← Electron 壳（main.ts 双模式：桌面应用 / --launcher 隐藏托管+托盘+挂件；preload.ts；esbuild 打包脚本 + electron-builder.yml）
 ├── packages/
 │   ├── core/                  ← 平台无关共享类型（仅依赖 zod）
-│   ├── server/                ← Fastify 应用（路由/Agent 循环/存储/认证）
+│   ├── server/                ← Fastify 应用（路由/Agent 循环/存储/认证）；`knowledge/` 是校园常识知识库数据（见 §9.5）
 │   ├── llm/                   ← LLM 适配层（OpenAI/Anthropic）
 │   ├── zju-services/          ← login-zju 封装 + 领域适配器
 │   ├── storage/               ← 预留抽象缝（近空，未来 Electron/Capacitor 原生后端）
@@ -156,8 +156,8 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 
 ### 9.2 Agent 系统（`src/agent/`）
 
-- `tools.ts`（740 行）：`buildTools(deps)` 注册工具，每个带 `riskLevel`（`read` / `write` / `payment` / `external_download`）与 `requiresConfirmation`。`read` 直接执行；高风险工具进 `pending_confirmations`（**5 分钟 TTL**），用户经 `POST /api/agent/confirm` 批准后才执行。
-- `prompt.ts`：**纯函数** `buildSystemPrompt({datetime, period, brief, profile})` 拼装系统提示（基础人设 + 昵称/自述个性化 + 挂件极简模式）与 `filterToolsForMode(tools, readOnly)`；单测见 `prompt.test.ts`。
+- `tools.ts`（870 行）：`buildTools(deps)` 注册工具，每个带 `riskLevel`（`read` / `write` / `payment` / `external_download`）与 `requiresConfirmation`。`read` 直接执行；高风险工具进 `pending_confirmations`（**5 分钟 TTL**），用户经 `POST /api/agent/confirm` 批准后才执行。其中 `zju_search_guide` / `zju_read_guide` 是校园常识知识库工具（见 §9.5），只读、无需登录。
+- `prompt.ts`：**纯函数** `buildSystemPrompt({datetime, period, brief, profile, guideOutline})` 拼装系统提示（基础人设 + 知识库使用规则与章节目录 + 昵称/自述个性化 + 挂件极简模式）与 `filterToolsForMode(tools, readOnly)`；单测见 `prompt.test.ts`。`guideOutline` 为空（知识库不可用）时整段省略，不报错。
 - `loop.ts`：`AgentLoop(deps, { readOnly?, brief? })` 最多 **8 轮**迭代：流式调 LLM → 收集文本+tool_calls → 持久化 assistant 消息 → 执行工具（或停在确认点）→ 结果回喂。`resumeAfterConfirm`/`resumeAfterReject` 恢复暂停的循环。Provider 取加密设置 `model-providers` 中第一个 `enabled` 条目；昵称/人设从明文设置 `app-settings` 读取。
 - 聊天走 **SSE**：`POST /api/agent/chat` 与 `/confirm` 以 `data: <json>\n\n` 流式推送事件；会话与消息持久化到 SQLite（`conversations`/`messages` 表），重连可恢复。
 - **挂件一次性问答**：`POST /api/agent/chat` 带 `mode: "widget"` 时，不建会话、不落库（`persist: false`）、只用只读工具（`readOnly`）、系统提示追加极简约束（`brief`）；`done` 事件里的 conversationId 是虚拟值 `widget-ephemeral`。
@@ -169,6 +169,23 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 ### 9.4 其他
 
 `config/env.ts`（端口/数据目录）、`config/logger.ts`、`middleware/auth.ts`、`auth/auth-session.ts`（AuthSessionManager）、`auth/credentials.ts`（加密凭据库）、`util/download.ts`、`util/rate-limit.ts`（Map 不过期清理，本地应用影响小）。
+
+### 9.5 校园常识知识库（`src/knowledge/` + `knowledge/`）
+
+把 CC98《浙江大学本科新生指引》（2026 版，93 篇 md / 830 个段落 / 约 740 KB）变成 AI 可按需检索的背景知识。**全文不常驻提示词**（约 20-30 万 token，塞不下），只把自动生成的章节目录（约 400 token）注入系统提示。
+
+| 文件 | 职责 |
+|---|---|
+| `knowledge/*.md` | 知识库数据（随仓库提交、随桌面版打包）。`ATTRIBUTION.md` 记录来源/许可/更新方式，不参与检索 |
+| `src/knowledge/search.ts` | **纯函数**：markdown 按标题分块（保留标题链）、中文 2-gram + 英文词分词、IDF 加权打分；单测 `search.test.ts` |
+| `src/knowledge/index.ts` | 目录定位、懒加载 + 内存缓存、`searchGuide` / `readGuideDoc` / `getGuideOutline` |
+
+- **目录解析顺序**：`ZJU_AGENT_KNOWLEDGE_DIR` 环境变量 → 同级 `knowledge/`（esbuild 打包后 `resources/server/knowledge`，由 `apps/desktop/electron-builder.yml` 的 extraResources 拷贝）→ 上两级 `knowledge/`（tsx 源码 / tsc 产物）。全部落空时降级为空知识库（工具返回"没找到"，提示词省略知识库段），不影响其它功能。
+- **检索策略**：段落 = 一个标题到下一个标题之间的正文；得分 = 标题命中×6 + 正文命中（各 token 上限 6 次），再按 IDF 加权；出现在 30% 以上段落里的 token（"什么""怎么"）直接丢弃。实测「绩点怎么算」「选课抽签规则」「医保报销」等口语化提问能命中对应段落。
+- **工具**：`zju_search_guide(query, limit)` 返回 top-N 原文片段（单条约 1500 字）；`zju_read_guide(doc)` 按路径读全文（约 8000 字上限）。两者都是 `read` 级，挂件只读模式自动可用。
+- **回答约束**（写在 `prompt.ts` 的 `GUIDE_RULES`）：先检索再回答、不得用通用大学常识替代浙大规定、检索不到要如实说明、个人实时数据仍走 `zju_get_*`、引用时标注「参考《浙江大学本科新生指引》」、政策类补「以学校官方最新通知为准」。
+- **更新知识库**：用上游新版 md 覆盖 `knowledge/` 同名文件即可，无需改代码；`index.md`/`preface.md`/`postscript.md`/`stylesheets/` 等站点元信息不要放进来（`SKIP_DOCS` 里也列了，但保持目录干净更好）。
+- **附件（地图/截图/PDF）有意不收录**：检索是纯文本的，图片对 AI 无价值，收录只会让仓库和安装包各多约 27 MB；引用图片的约 60 处段落正文自洽，纯图片文件（校历图、校园地图）会被索引自动跳过。若日后要补 PDF 正文，先 `pdftotext` 抽成 md 再放进 `knowledge/`（详见 `knowledge/ATTRIBUTION.md`）。
 
 ## 10. packages/llm — LLM 适配层
 
@@ -242,6 +259,7 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 13. **LLM baseUrl 的版本段**：`joinUrl()`（`packages/llm/src/adapters/openai.ts`）只在 baseUrl 没有版本段时补 `/v1`。智谱 GLM 的 baseUrl 是 `https://open.bigmodel.cn/api/paas/v4`，必须直接拼 `/chat/completions`；早期实现无条件补 `/v1` 会打到 `/v4/v1/chat/completions` 返回 404。改这里要跑 `openai.test.ts`。
 14. **个性化设置存在 `app-settings` 明文 JSON 里**：`PUT /api/settings/app` 是**整体覆盖**，前端保存前必须把 `useAppSettings()` 拿到的对象展开再改字段，否则会清掉其他设置（如下载目录）。
 15. **上课时间只有一处定义**：`packages/core/src/domain/schedule.ts` 的 `ZJU_STANDARD_SESSION_TIMES`（1-13 节 08:00 起，14/15 节为夜间加课；index 0 是占位项）。后端日程流/挂件用它算 `startTimeStr`，前端课表网格/Excel 导出经 `apps/web/src/utils/timetable.ts` 的 `periodTimeRange`/`sectionRangeLabel` 取同一张表——**不要在页面里另抄一份时间**，作息调整只改 core 一处（`timetablePeriods.test.ts` 会守住这张表）。
+16. **知识库缺失是静默降级，容易漏测**：`src/knowledge/index.ts` 依次探测 `ZJU_AGENT_KNOWLEDGE_DIR` → 同级 `knowledge/` → 上两级 `knowledge/`，全落空时只是"知识库不可用"（工具返回空 + 提示词省略该段），**不报错**。改了打包/目录结构后必须确认 `resources/server/knowledge` 真被拷进去（`electron-builder.yml` 的 extraResources）；dev（tsx 源码）与 esbuild 打包后 `import.meta.url` 位置不同，两种布局都要能命中。`knowledge/` 下新增文件后跑 `search.test.ts`（真实数据冒烟会校验加载数量）。
 
 ## 13. 数据目录（运行时产生，不入库）
 
@@ -271,3 +289,4 @@ Electron 桌面模式下：web 构建产物由 Electron 加载，token 由 Elect
 - 2026-09-08 新增两个功能：①**课表导出**——课程页工具栏「导出图片/导出 Excel」（`utils/exportTimetable.ts`：html-to-image 截离屏节点出 PNG；ExcelJS 生成网格样式 xlsx，ExcelJS 仅类型引用 + 运行时 `await import` 懒加载，避免拖累课程页首屏）；网格分组/配色提取到 `utils/timetable.ts` 供网页渲染与导出共用。②**学校信息页**——抓取素质拓展平台+教务系统通知（均免登录公开接口，协议参照 `D:\Agent Program\浙大网页抓包` 项目：教务须用登录页新闻接口 `xwck_cxMoreLoginNews`，登录后的 `xwgl_*` 一律 901；素拓 `fbsj` 是 UTC ISO 转 +8；教务发布人是 `xwfbr` 不是 `fbr`），并注册 Agent 工具 `zju_get_notices`（read 级）。Electron 外链已有 `setWindowOpenHandler` → `shell.openExternal`，无需改动。
 - 2026-09-08 新增**后台隐藏托管 + 系统托盘 + 桌面挂件**：`start-dev.bat` 不再弹两个终端窗口，改由 `scripts/dev-launcher.mjs` 启动 `apps/desktop` 的 **launcher 模式**（`--launcher`）：隐藏托管 `pnpm dev:server`/`dev:web`（日志 `.run/*.log`）、系统托盘（打开主界面/显示隐藏挂件/打开日志/重启服务/退出）、桌面挂件（`apps/web/widget.html` 独立入口，显示 48h 日程+待办作业）。
 - 2026-09-08 晚（第三轮）：①**修挂件背景**——实测 Electron 原生亚克力在「无边框+透明+置顶」窗口上只会渲染成灰板（Electron 33/38 一致），改为**纯 CSS 半透明**并删掉材质切换；挂件尺寸 320×440 → **380×560**；实测与结论见 `docs/widget-material-comparison.md`。②**挂件 AI 对话条**——`WidgetChat.tsx` + `POST /api/agent/chat` 的 `mode: "widget"`：一次性问答、不落库、只读工具、服务端强制简短回答。③**个性化**——设置页新增「个性化」（昵称 / 头像 / 默认提示词），主页问候语与聊天头像用它，昵称与人设注入所有 AI 对话的系统提示。④修 `joinUrl` 无条件补 `/v1` 导致智谱 GLM（baseUrl `.../paas/v4`）404 的 bug。
+- 2026-09-08 晚（第四轮）：**校园常识知识库**——CC98《浙江大学本科新生指引》（2026 版，93 篇 md / 830 段 / 740 KB）收进 `packages/server/knowledge/`，新增只读工具 `zju_search_guide` / `zju_read_guide`（中文 2-gram + IDF 检索）与系统提示词里的自动生成章节目录（约 400 token）；AI 回答选课/绩点/奖助/转专业/宿舍/网络/医保等浙大常识时按需检索原文，回答标注「参考《浙江大学本科新生指引》」、政策类附「以官方最新通知为准」；数据随桌面版打包（extraResources）。设计与陷阱见 §9.5、§12.16。

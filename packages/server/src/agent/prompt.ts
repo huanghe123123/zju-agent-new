@@ -1,10 +1,11 @@
 /**
  * 系统提示词构建（纯函数，单测见 prompt.test.ts）。
  *
- * 三部分拼装：
+ * 四部分拼装：
  * 1. 基础人设与工具使用规则（SYSTEM_PROMPT_TPL）
- * 2. 用户个性化（昵称 / 自述提示词）—— 来自设置页「个性化」
- * 3. 挂件简短模式（brief）—— 桌面挂件的小窗口里要求极简作答
+ * 2. 校园常识知识库使用规则 + 章节目录（guideOutline，知识库缺失时整段省略）
+ * 3. 用户个性化（昵称 / 自述提示词）—— 来自设置页「个性化」
+ * 4. 挂件简短模式（brief）—— 桌面挂件的小窗口里要求极简作答
  */
 
 export type UserProfile = {
@@ -22,6 +23,8 @@ export type SystemPromptInput = {
   /** 简短模式（桌面挂件） */
   brief?: boolean;
   profile?: UserProfile;
+  /** 知识库章节目录（getGuideOutline 生成）；为空表示知识库不可用 */
+  guideOutline?: string;
 };
 
 export const SYSTEM_PROMPT_TPL = `你是浙江大学校园智能助手。你能查询学生的课程、作业、考试、课表等校园信息，并能执行下载课程资料等操作。
@@ -52,11 +55,28 @@ const BRIEF_RULES = `本次对话发生在桌面挂件的小窗口里，空间�
 - 不要输出表格、代码块、标题或多级列表；需要列举时用「·」开头的短行，最多 4 行。
 - 不要复述用户的提问，不要客套话。`;
 
+/** 知识库（CC98《浙江大学本科新生指引》）使用规则 */
+const GUIDE_RULES = `关于浙大校园常识（知识库）：
+- 系统内置一份《浙江大学本科新生指引》（CC98 论坛编撰，非官方，面向本科生）作为知识库，涵盖选课、考核与绩点、奖助、专业确认与转专业、培养方案、宿舍园区、校园网、图书馆、就医、军训、社团等校园制度与生活常识。
+- 用户问这类「浙大怎么规定/怎么办」的问题时，先用 zju_search_guide 检索；片段被截断或需要完整上下文时，再用 zju_read_guide 读取全文。回答必须基于检索到的原文，不要用通用大学常识代替浙大具体规定。
+- 检索不到就如实说明指引里没有相关内容；如果仍要回答，需说明这是常识性建议、不是浙大官方规定。
+- 个人实时数据（课程/作业/考试/课表/成绩）必须走 zju_get_* 工具，不要用知识库。
+- 引用知识库内容时，在回答末尾附「参考《浙江大学本科新生指引》」；涉及奖助、选课、转专业、培养方案等政策时，再补一句「以学校官方最新通知为准」。
+- 知识库内容为 2026 版，可能滞后于学校最新规定。
+
+知识库章节目录（zju_search_guide 检索、zju_read_guide 按路径读取）：
+__GUIDE_OUTLINE__`;
+
 export function buildSystemPrompt(input: SystemPromptInput): string {
   let prompt = SYSTEM_PROMPT_TPL.replace("__DATETIME__", input.datetime).replace(
     "__PERIOD__",
     input.period,
   );
+
+  const guideOutline = input.guideOutline?.trim();
+  if (guideOutline) {
+    prompt += `\n\n${GUIDE_RULES.replace("__GUIDE_OUTLINE__", guideOutline)}`;
+  }
 
   const nickname = input.profile?.nickname?.trim();
   const persona = input.profile?.persona?.trim();

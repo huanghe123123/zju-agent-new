@@ -28,6 +28,7 @@ import type { LlmProvider, LlmRequest } from "@zju-agent/llm";
 import type { ServicesContainer } from "../services.js";
 import type { ServerConfig } from "../config/env.js";
 import { buildTools } from "./tools.js";
+import { getGuideOutline } from "../knowledge/index.js";
 import {
   buildSystemPrompt,
   filterToolsForMode,
@@ -127,6 +128,7 @@ export class AgentLoop {
       period: currentPeriodStr(),
       brief: this.options.brief,
       profile: loadUserProfile(this.deps),
+      guideOutline: getGuideOutline(),
     });
 
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
