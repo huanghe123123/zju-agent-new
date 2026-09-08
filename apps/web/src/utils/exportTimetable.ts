@@ -15,6 +15,7 @@ import {
   compressWeeks,
   courseNamesOf,
   groupTimetable,
+  periodTimeRange,
   COURSE_COLOR_HEX,
   DAY_LABELS,
   DAYS,
@@ -49,7 +50,7 @@ export async function downloadTimetableXlsx(
   const ws = workbook.addWorksheet("课程表", {
     views: [{ state: "frozen", ySplit: 2 }],
   });
-  ws.columns = [{ width: 7 }, ...DAYS.map(() => ({ width: 20 }))];
+  ws.columns = [{ width: 12 }, ...DAYS.map(() => ({ width: 20 }))];
 
   // 标题行
   ws.mergeCells(1, 1, 1, colCount);
@@ -70,14 +71,14 @@ export async function downloadTimetableXlsx(
     cell.border = gridBorder();
   });
 
-  // 节次编号列
+  // 节次编号列：节次 + 上课时间（与网页课表同一张作息表）
   for (let sec = 1; sec <= MAX_SECTION; sec++) {
     const row = sec + 2;
     ws.getRow(row)!.height = 54;
     const cell = ws.getCell(row, 1);
-    cell.value = sec;
+    cell.value = `${sec}\n${periodTimeRange(sec)}`;
     cell.font = { size: 10, color: { argb: "FF94A3B8" } };
-    cell.alignment = { horizontal: "center", vertical: "middle" };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
     cell.border = gridBorder();
   }

@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/Layout.js";
 import { useApiFetch } from "../api/bootstrap.js";
 import { useValidateCredential, useLogout } from "../api/auth.js";
+import {
+  fileToAvatarDataUrl,
+  useAppSettings,
+  useSaveAppSettings,
+} from "../api/settings.js";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faRobot,
@@ -10,6 +15,7 @@ import {
   faShieldHalved,
   faTrashCan,
   faClipboardList,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
@@ -42,6 +48,51 @@ export function SettingsPage() {
     enabled: true,
   });
   const [message, setMessage] = useState<string | null>(null);
+
+  // 个性化：昵称 / 头像 / 默认提示词
+  const { data: appSettings } = useAppSettings();
+  const saveApp = useSaveAppSettings();
+  const [nickname, setNickname] = useState("");
+  const [persona, setPersona] = useState("");
+  const [avatar, setAvatar] = useState<string | undefined>(undefined);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  useEffect(() => {
+    if (profileLoaded || !appSettings) return;
+    setNickname(typeof appSettings.nickname === "string" ? appSettings.nickname : "");
+    setPersona(
+      typeof appSettings.personaPrompt === "string" ? appSettings.personaPrompt : "",
+    );
+    setAvatar(
+      typeof appSettings.avatarDataUrl === "string" ? appSettings.avatarDataUrl : undefined,
+    );
+    setProfileLoaded(true);
+  }, [appSettings, profileLoaded]);
+
+  async function onPickAvatar(file: File) {
+    setMessage(null);
+    try {
+      setAvatar(await fileToAvatarDataUrl(file));
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "图片处理失败");
+    }
+  }
+
+  async function saveProfile() {
+    setMessage(null);
+    try {
+      // PUT /api/settings/app 是整体覆盖，必须带上已有字段
+      await saveApp.mutateAsync({
+        ...(appSettings ?? {}),
+        nickname: nickname.trim(),
+        personaPrompt: persona.trim(),
+        avatarDataUrl: avatar,
+      });
+      setMessage("个性化设置已保存");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "保存失败");
+    }
+  }
 
   function reload() {
     window.location.reload();
@@ -145,6 +196,80 @@ export function SettingsPage() {
           <p className="mt-2 text-xs text-slate-400">
             登出将清除本机保存的 ZJU 密码与所有校园服务 session。
           </p>
+        </Section>
+
+        {/* 个性化 */}
+        <Section id="profile" title="个性化" icon={faUser}>
+          <div className="flex items-start gap-4">
+            <div className="flex w-20 shrink-0 flex-col items-center gap-2">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt="头像"
+                  className="size-16 rounded-full object-cover ring-2 ring-slate-200"
+                />
+              ) : (
+                <div className="flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <FontAwesomeIcon icon={faUser} className="text-xl" />
+                </div>
+              )}
+              <label className="cursor-pointer rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100">
+                选择图片
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void onPickAvatar(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {avatar && (
+                <button
+                  onClick={() => setAvatar(undefined)}
+                  className="text-xs text-rose-600 hover:underline"
+                >
+                  移除头像
+                </button>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <Field label="昵称（主页问候语，AI 也会这样称呼你）">
+                <input
+                  className="input"
+                  maxLength={24}
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="例如：小林"
+                />
+              </Field>
+              <Field label="默认提示词（注入所有 AI 对话，让回答更贴合你）">
+                <textarea
+                  className="input"
+                  rows={4}
+                  maxLength={1000}
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                  placeholder="例如：我是浙江大学计算机学院大二学生，爱好摄影和跑步，平时喜欢研究操作系统与分布式系统；回答时多结合课程与校园生活。"
+                />
+              </Field>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={saveProfile}
+                  disabled={saveApp.isPending}
+                  className="rounded-md bg-zju-primary px-4 py-2 text-sm text-white hover:bg-zju-light disabled:opacity-50"
+                >
+                  {saveApp.isPending ? "保存中…" : "保存个性化设置"}
+                </button>
+                <span className="text-xs text-slate-400">
+                  头像压缩到 256px 后仅存本机，不会上传
+                </span>
+              </div>
+            </div>
+          </div>
         </Section>
 
         {/* 权限策略 */}

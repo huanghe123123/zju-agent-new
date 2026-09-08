@@ -1,25 +1,37 @@
 /**
  * Electron 主进程。
- * 启动本地 Fastify 服务端，然后创建窗口加载前端。
+ *
+ * 两种运行模式：
+ * - 默认（桌面应用）：启动本地 Fastify 服务端，创建主窗口加载前端。
+ * - `--launcher`（开发托管）：隐藏托管前后端开发服务 + 系统托盘 + 桌面挂件，
+ *   由 start-dev.bat 调用，替代原先弹出的两个终端窗口。
+ *
  * 服务端绑定 127.0.0.1:7788，仅本机可访问。
  */
 
-import { app, BrowserWindow, shell } from "electron";
-import { spawn, type ChildProcess } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { spawn, type ChildProcess } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { appDir, isDev, runDir, SERVER_URL, WEB_URL } from "./paths.js";
+import { createDevLauncher, type DevLauncher } from "./launcher.js";
+import { createTray, type TrayController } from "./tray.js";
+import { createWidgetWindow } from "./widget-window.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+const isLauncherMode = process.argv.includes("--launcher");
 
-const SERVER_PORT = 7788;
-const SERVER_HOST = "127.0.0.1";
+// launcher 使用独立的 userData，避免与桌面应用模式互抢单实例锁
+if (isLauncherMode) {
+  app.setPath("userData", path.join(app.getPath("appData"), "zju-campus-agent-launcher"));
+}
 
 let serverProcess: ChildProcess | null = null;
 
+// ---------------- 桌面应用模式 ----------------
+
 function getServerEntry(): string {
   if (isDev) {
-    return path.resolve(__dirname, "../../../packages/server/src/index.ts");
+    return path.resolve(appDir, "../../../packages/server/src/index.ts");
   }
   // 生产模式：server 是 extraResource，在 resources/server/
   return path.join(process.resourcesPath, "server", "index.js");
@@ -27,13 +39,13 @@ function getServerEntry(): string {
 
 function getWebRoot(): string {
   if (isDev) return "http://localhost:5173";
-  return `file://${path.join(__dirname, "../web")}`;
+  return `file://${path.join(appDir, "../web")}`;
 }
 
 function startServer(): Promise<void> {
   return new Promise((resolve, reject) => {
     const entry = getServerEntry();
-    const cwd = path.resolve(__dirname, "../../..");
+    const cwd = path.resolve(appDir, "../../..");
 
     if (isDev) {
       // 开发模式：使用 tsx
@@ -41,6 +53,7 @@ function startServer(): Promise<void> {
         cwd,
         env: { ...process.env, NODE_ENV: "development" },
         stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
       });
     } else {
       // 生产模式：server 是 extraResource
@@ -49,6 +62,7 @@ function startServer(): Promise<void> {
         cwd: serverDir,
         env: { ...process.env, NODE_ENV: "production" },
         stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
       });
     }
 
@@ -104,7 +118,7 @@ async function createWindow() {
     minHeight: 600,
     title: "ZJU Campus Agent",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(appDir, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -122,17 +136,128 @@ async function createWindow() {
     win.webContents.openDevTools({ mode: "detach" });
   } else {
     // 生产模式：asar 内 dist/web/ → 加载 index.html
-    const indexPath = path.join(__dirname, "web/index.html");
+    const indexPath = path.join(appDir, "web/index.html");
     await win.loadFile(indexPath);
   }
 }
 
+// ---------------- launcher 模式 ----------------
+
+let launcher: DevLauncher | null = null;
+let trayController: TrayController | null = null;
+let widgetWindow: BrowserWindow | null = null;
+let quitting = false;
+let launcherPidFile: string | null = null;
+
+function recreateWidget() {
+  if (widgetWindow && !widgetWindow.isDestroyed()) {
+    widgetWindow.destroy();
+  }
+  console.log("[launcher] 创建挂件窗口");
+  widgetWindow = createWidgetWindow();
+  widgetWindow.on("closed", () => {
+    widgetWindow = null;
+    trayController?.refresh();
+  });
+  trayController?.refresh();
+}
+
+function showWidget() {
+  if (widgetWindow && !widgetWindow.isDestroyed()) {
+    widgetWindow.showInactive();
+  } else {
+    recreateWidget();
+  }
+  trayController?.refresh();
+}
+
+function toggleWidget() {
+  if (widgetWindow && !widgetWindow.isDestroyed() && widgetWindow.isVisible()) {
+    widgetWindow.hide();
+    trayController?.refresh();
+    return;
+  }
+  showWidget();
+}
+
+async function runLauncher() {
+  if (!app.requestSingleInstanceLock()) {
+    console.log("[launcher] 已有实例在运行，本次启动退出");
+    app.quit();
+    return;
+  }
+
+  app.on("second-instance", () => {
+    showWidget();
+    launcher?.openApp();
+  });
+
+  fs.mkdirSync(runDir, { recursive: true });
+  launcherPidFile = path.join(runDir, "launcher.pid");
+  fs.writeFileSync(launcherPidFile, String(process.pid), "utf8");
+
+  launcher = createDevLauncher(() => trayController?.refresh());
+
+  trayController = createTray(
+    {
+      openApp: () => launcher?.openApp(),
+      toggleWidget,
+      openLogs: () => {
+        void shell.openPath(runDir);
+      },
+      restartServices: () => {
+        void launcher?.restartAll();
+      },
+      quit: () => app.quit(),
+    },
+    () => ({
+      widgetVisible:
+        !!widgetWindow && !widgetWindow.isDestroyed() && widgetWindow.isVisible(),
+      services: (launcher?.services() ?? []).map((service) => ({
+        label: service.label,
+        port: service.port,
+        ready: service.ready,
+        external: service.external,
+      })),
+    }),
+  );
+
+  // 挂件页面通过 preload 暴露的这两个通道与主进程交互
+  ipcMain.handle("widget:hide", () => {
+    widgetWindow?.hide();
+    trayController?.refresh();
+  });
+
+  ipcMain.handle("widget:open-app", (_event, pathname: unknown) => {
+    const suffix =
+      typeof pathname === "string" && pathname.startsWith("/") ? pathname : "/";
+    void shell.openExternal(new URL(suffix, WEB_URL).toString());
+  });
+
+  await launcher.start();
+
+  // 等服务就绪后再建挂件窗口：否则首帧会加载失败（Vite 还没起来），
+  // 日志里会留下 ERR_CONNECTION_REFUSED 的噪音。托盘图标在 start() 时已出现。
+  const ready = await launcher.waitUntilReady();
+  recreateWidget();
+  if (ready) {
+    launcher.openApp();
+  }
+  trayController.refresh();
+}
+
+// ---------------- 生命周期 ----------------
+
 app.whenReady().then(async () => {
+  if (isLauncherMode) {
+    await runLauncher();
+    return;
+  }
+
   try {
     await startServer();
-    const healthUrl = `http://${SERVER_HOST}:${SERVER_PORT}`;
-    console.log(`Waiting for server at ${healthUrl}...`);
-    await waitForServer(healthUrl);
+    console.log(`Waiting for server at ${SERVER_URL}...`);
+    await waitForServer(SERVER_URL);
     console.log("Server ready, creating window...");
     await createWindow();
   } catch (err) {
@@ -147,6 +272,9 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+  // launcher 模式靠托盘常驻，关掉挂件不等于退出
+  if (isLauncherMode) return;
+
   if (serverProcess) {
     serverProcess.kill("SIGTERM");
     serverProcess = null;
@@ -157,12 +285,28 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
+  if (isLauncherMode) return;
   if (BrowserWindow.getAllWindows().length === 0) {
     void createWindow();
   }
 });
 
-app.on("before-quit", () => {
+app.on("before-quit", (event) => {
+  if (isLauncherMode) {
+    if (quitting) return;
+    event.preventDefault();
+    quitting = true;
+    void (async () => {
+      console.log("[launcher] 正在停止后台服务…");
+      await launcher?.stopAll();
+      if (launcherPidFile) {
+        fs.rmSync(launcherPidFile, { force: true });
+      }
+      app.quit();
+    })();
+    return;
+  }
+
   if (serverProcess) {
     serverProcess.kill("SIGTERM");
     serverProcess = null;

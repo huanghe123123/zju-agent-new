@@ -24,5 +24,13 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        // 主应用
+        index: "index.html",
+        // 桌面挂件（Electron 独立窗口加载，不套主应用外壳）
+        widget: "widget.html",
+      },
+    },
   },
 });

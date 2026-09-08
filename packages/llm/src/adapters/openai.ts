@@ -136,12 +136,10 @@ export class OpenAIProvider implements LlmProvider {
   }
 }
 
-function joinUrl(base: string, path: string): string {
+export function joinUrl(base: string, path: string): string {
   const b = base.replace(/\/+$/, "");
-  // 兼容 baseUrl 已含 /v1 或不含
-  if (b.endsWith("/v1")) return b + path;
-  if (b.includes("/v1/")) return b + path.replace(/^\//, "");
-  return b + "/v1" + path;
+  // baseUrl 已含版本段（/v1 OpenAI、/v4 智谱等）时直接拼接，否则补 /v1
+  return /\/v\d+(\/|$)/.test(b) ? b + path : b + "/v1" + path;
 }
 
 function toOpenAIMessage(m: AgentMessage): Record<string, unknown> {
